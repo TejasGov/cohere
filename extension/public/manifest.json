@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Academic WebMCP Bridge",
+  "version": "0.1.0",
+  "description": "Normalizes visible academic data and exposes read-only local academic WebMCP tools.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://ublearns.buffalo.edu/*"],
+  "action": { "default_popup": "popup.html", "default_title": "Academic WebMCP Bridge" },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:5173/*", "http://127.0.0.1:5173/*", "http://localhost:4173/*", "http://127.0.0.1:4173/*", "https://ublearns.buffalo.edu/*"],
+      "js": ["assets/content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:5173/*", "http://127.0.0.1:5173/*", "http://localhost:4173/*", "http://127.0.0.1:4173/*", "https://ublearns.buffalo.edu/*"],
+      "js": ["assets/webmcp-main.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
+}

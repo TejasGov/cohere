@@ -1,0 +1,33 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #142033; }
+body { margin: 0; width: 380px; background: #f4f7fb; }
+main { padding: 1rem; }
+header { display: flex; gap: .7rem; align-items: center; }
+.mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: #2855d9; color: white; font-weight: 800; }
+h1 { font-size: 1rem; margin: 0; }
+header p { margin: .15rem 0 0; color: #667085; font-size: .75rem; }
+.platform { display: flex; justify-content: space-between; gap: 1rem; margin: 1rem 0 .65rem; padding: .75rem; background: #e8eefc; border-radius: .6rem; }
+.platform span { color: #526079; }
+dl { background: white; border: 1px solid #dce3ee; border-radius: .7rem; overflow: hidden; margin: 0 0 .75rem; }
+dl div { display: flex; justify-content: space-between; gap: 1rem; padding: .62rem .7rem; border-bottom: 1px solid #edf0f5; }
+dl div:last-child { border: 0; }
+dt { color: #667085; }
+dd { margin: 0; font-weight: 650; text-align: right; }
+.ready { color: #087c5b; }
+.unsupported { color: #a64222; }
+details { background: #172033; color: white; border-radius: .6rem; margin-bottom: .75rem; }
+summary { cursor: pointer; padding: .7rem; font-weight: 650; }
+pre { max-height: 300px; overflow: auto; margin: 0; padding: 0 .7rem .7rem; font: 11px/1.45 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+footer { font-size: .72rem; color: #667085; }
+.semester-scan { margin: 0 0 .75rem; padding: .75rem; border: 1px solid #cfd9ec; border-radius: .7rem; background: white; }
+.scan-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.scan-heading h2 { margin: 0; font-size: .9rem; }
+.scan-heading span { color: #526079; font-size: .75rem; text-transform: capitalize; }
+.semester-scan p { margin: .45rem 0; color: #526079; font-size: .78rem; }
+.scan-courses { max-height: 105px; overflow: auto; margin: .4rem 0; padding-left: 1.25rem; font-size: .76rem; }
+.scan-courses:empty { display: none; }
+#scan-semester { width: 100%; padding: .55rem; border: 0; border-radius: .45rem; background: #2855d9; color: white; cursor: pointer; font-weight: 650; }
+#scan-semester:disabled { cursor: wait; opacity: .65; }
+
+.webmcp-status { margin: 0 0 .75rem; padding: .75rem; border: 1px solid #cfd9ec; border-radius: .7rem; background: white; }
+.webmcp-status p { margin: .45rem 0; color: #526079; font-size: .78rem; }
+.webmcp-tools { max-height: 120px; overflow: auto; margin: .4rem 0; padding-left: 1.25rem; font-size: .72rem; }

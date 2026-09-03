@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+**/dist/
+coverage/
+.vite/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Never commit real student documents or exports.
+*.pdf
+*.doc
+*.docx
+*.ics
