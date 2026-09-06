@@ -32,7 +32,7 @@ export function extractDocumentFacts(text: string, document: DocumentReference, 
         sourceReference
       });
     }
-    if (date && /\b(?:exam|midterm|final|quiz)\b/i.test(line)) {
+    if (date && /\b(?:exam|midterm|quiz)\b|\bfinal\s+exam\b/i.test(line)) {
       const title = line.replace(monthDate, '').replace(/[:–—-]+$/, '').trim() || 'Exam';
       state.exams.push({
         id: stableId('document-exam', course.id, title, document.sourceUrl), courseId: course.id,
@@ -42,7 +42,7 @@ export function extractDocumentFacts(text: string, document: DocumentReference, 
         sourceReference
       });
     }
-    if (/\b(?:grading|grade|homework|exams?|projects?)\b.*\b\d{1,3}\s*%/i.test(line)) {
+    if (/\b(?:grading|grades?|homework|exams?|midterms?|final|projects?)\b.*\b\d{1,3}\s*%/i.test(line)) {
       state.policies.push({
         id: stableId('grading-policy', course.id, line, document.sourceUrl), courseId: course.id,
         courseCode: course.courseCode, title: 'Grading policy', policyType: 'grading', description: line,
@@ -51,7 +51,7 @@ export function extractDocumentFacts(text: string, document: DocumentReference, 
         sourceReference
       });
     }
-    if (/\battendance\b|\babsences?\b/i.test(line) && /\b(?:required|policy|allowed|penalty|deduct|miss)\b/i.test(line)) {
+    if (/\battendance\b|\babsences?\b/i.test(line) && /\b(?:required|policy|allowed|penalty|deduct|miss|lowers?|unexcused)\b/i.test(line)) {
       state.policies.push({
         id: stableId('attendance-policy', course.id, line, document.sourceUrl), courseId: course.id,
         courseCode: course.courseCode, title: 'Attendance policy', policyType: 'attendance', description: line,
@@ -64,7 +64,7 @@ export function extractDocumentFacts(text: string, document: DocumentReference, 
     if (office?.[1]) {
       state.officeHours.push({
         id: stableId('office-hours', course.id, office[1], document.sourceUrl), courseId: course.id,
-        courseCode: course.courseCode, title: 'Office hours', scheduleText: office[1], location: office[1].match(/,\\s*([^,]+)$/)?.[1],
+        courseCode: course.courseCode, title: 'Office hours', scheduleText: office[1], location: office[1].match(/,\s*([^,]+)$/)?.[1],
         sourcePlatform: 'ub-brightspace', sourceUrl: document.sourceUrl, sourceTitle: document.title,
         sourceType: document.documentType, extractedFrom: 'document-text', lastObservedAt: document.lastObservedAt,
         sourceReference

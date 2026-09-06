@@ -4,19 +4,56 @@ import {
 } from '@academic/core';
 import { parseAcademicDate, parsePoints } from './common';
 
-const brightspaceShadowHosts = [
-  'd2l-my-courses', 'd2l-my-courses-card-grid', 'd2l-enrollment-card', 'd2l-card',
-  'd2l-list-item', 'd2l-table', 'd2l-announcement', 'd2l-assignment-list'
-].join(',');
-
 function queryRoots(document: Document): Array<Document | ShadowRoot> {
   const roots: Array<Document | ShadowRoot> = [document];
-  for (let index = 0; index < roots.length && roots.length < 30; index += 1) {
-    roots[index]?.querySelectorAll<HTMLElement>(brightspaceShadowHosts).forEach((host) => {
-      if (host.shadowRoot && !roots.includes(host.shadowRoot)) roots.push(host.shadowRoot);
+  for (let index = 0; index < roots.length && roots.length < 50; index += 1) {
+    roots[index]?.querySelectorAll<HTMLElement>('*').forEach((host) => {
+      if (roots.length < 50 && host.shadowRoot && !roots.includes(host.shadowRoot)) roots.push(host.shadowRoot);
+      if (roots.length < 50 && host instanceof HTMLIFrameElement) {
+        try {
+          if (host.contentDocument && !roots.includes(host.contentDocument)) roots.push(host.contentDocument);
+        } catch {
+          // Cross-origin frames are outside the visible same-origin DOM scope.
+        }
+      }
     });
   }
   return roots;
+}
+
+function courseContainer(element: Element): Element | null {
+  if (element.matches('d2l-enrollment-card, d2l-card, [data-org-unit-id], [data-testid*="course"], article, [role="listitem"], li')) return element;
+  return element.closest('d2l-enrollment-card, d2l-card, [data-org-unit-id], [data-testid*="course"], article, [role="listitem"], li');
+}
+
+function visibleCourseTitle(element: Element, container: Element | null): string | undefined {
+  const structured = cleanText(container?.querySelector('[data-course-title], [slot="header"], h1, h2, h3, h4')?.textContent);
+  const attributes = ['text', 'primary-text', 'heading', 'label', 'title', 'aria-label', 'data-course-title', 'course-title', 'course-name'];
+  for (const attribute of attributes) {
+    const value = cleanText(element.getAttribute(attribute)) ?? cleanText(container?.getAttribute(attribute));
+    if (value && !/^(open|view|enter)\s+(?:this\s+)?course$/i.test(value)) return structured ?? value;
+  }
+  return structured ?? cleanText(element.textContent) ?? cleanText(container?.textContent);
+}
+
+function courseHref(element: Element): string | undefined {
+  const preferred = ['href', 'data-href', 'data-url', 'url', 'link-href'];
+  for (const name of preferred) {
+    const value = element.getAttribute(name);
+    if (value && /\/d2l\/home\/\d+/i.test(value)) return value;
+  }
+  for (const attribute of Array.from(element.attributes)) {
+    if (/\/d2l\/home\/\d+/i.test(attribute.value)) return attribute.value;
+  }
+  try {
+    const component = element as HTMLElement & { href?: unknown; url?: unknown };
+    for (const value of [component.href, component.url]) {
+      if (typeof value === 'string' && /\/d2l\/home\/\d+/i.test(value)) return value;
+    }
+  } catch {
+    // Custom-element properties are not guaranteed to cross isolated worlds.
+  }
+  return undefined;
 }
 
 function parseCourseTitle(value: string): { courseCode?: string; courseTitle: string } {
@@ -84,30 +121,29 @@ export class RealBrightspaceAdapter implements AcademicAdapter {
     const safePageUrl = new URL(url.origin + url.pathname);
     const state = emptyAcademicState(this.id, safePageUrl, observedAt);
     const roots = queryRoots(document);
-    const courseAnchors = roots.flatMap((root) =>
-      Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href*="/d2l/home/"]'))
-    );
+    const courseAnchors = roots.flatMap((root) => Array.from(root.querySelectorAll<HTMLElement>('*')).filter((element) => courseHref(element) !== undefined));
     const courseCardContainers = new Set<Element>();
     const hrefPatterns = new Set<string>();
     const courses: Course[] = [];
 
     courseAnchors.forEach((anchor) => {
-      const courseUrl = sanitizedUrl(anchor.getAttribute('href') ?? anchor.href, url);
+      const rawCourseHref = courseHref(anchor);
+      if (!rawCourseHref) return;
+      const courseUrl = sanitizedUrl(rawCourseHref, url);
       if (!courseUrl || courseUrl.hostname !== url.hostname) return;
       const orgUnitMatch = /^\/d2l\/home\/(\d+)\/?$/i.exec(courseUrl.pathname);
       if (!orgUnitMatch?.[1]) return;
-      const container = anchor.closest('d2l-enrollment-card, [data-org-unit-id], [data-testid*="course"], article, [role="listitem"], li');
+      const container = courseContainer(anchor);
       if (container) courseCardContainers.add(container);
       const orgUnitType = cleanText(container?.getAttribute('data-org-unit-type'))?.toLocaleLowerCase();
       if (orgUnitType && !['course', 'course offering', 'offering'].includes(orgUnitType)) return;
       const pattern = safeHrefPattern(courseUrl.href);
       if (pattern) hrefPatterns.add(pattern);
-      const structuredTitle = cleanText(container?.querySelector('[data-course-title], h1, h2, h3, h4')?.textContent);
-      const visibleTitle = structuredTitle ?? cleanText(anchor.textContent) ?? cleanText(anchor.getAttribute('aria-label'));
+      const visibleTitle = visibleCourseTitle(anchor, container);
       if (!visibleTitle) return;
       const { courseCode, courseTitle } = parseCourseTitle(visibleTitle);
       const sourceId = orgUnitMatch[1];
-      const term = cleanText(anchor.dataset.term ?? container?.getAttribute('data-term') ?? container?.querySelector('[data-term]')?.textContent);
+      const term = cleanText(anchor.dataset.term ?? anchor.getAttribute('subtext') ?? container?.getAttribute('data-term') ?? container?.getAttribute('subtext') ?? container?.querySelector('[data-term]')?.textContent);
       courses.push({
         id: stableId(this.id, 'course', sourceId), sourcePlatform: this.id, sourceUrl: courseUrl.href,
         sourceId, lastObservedAt: observedAt, courseCode, courseTitle, term, status: 'active'
@@ -235,6 +271,8 @@ export class RealBrightspaceAdapter implements AcademicAdapter {
       candidateCourseLinks: courseAnchors.length,
       candidateHrefPatterns: [...hrefPatterns],
       potentialCourseCardContainers: courseCardContainers.size,
+      scannedDomRoots: roots.length,
+      candidateCourseHosts: courseAnchors.filter((element) => element.matches('d2l-enrollment-card, d2l-card, [data-org-unit-id]')).length,
       candidateAnnouncementContainers: announcementContainers.size,
       candidateAnnouncementTitles,
       assignmentPageDetected,

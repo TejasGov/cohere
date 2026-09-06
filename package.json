@@ -5,6 +5,12 @@
   "scripts": {
     "dev": "pnpm --filter @academic/demo-portal dev",
     "dev:demo": "pnpm --filter @academic/demo-portal dev",
+    "demo:shadow-cohort": "pnpm --filter @shadow-cohort/agent demo",
+    "shadow:peer:a": "pnpm --filter @shadow-cohort/peer peer:a",
+    "shadow:peer:b": "pnpm --filter @shadow-cohort/peer peer:b",
+    "shadow:peer:c": "pnpm --filter @shadow-cohort/peer peer:c",
+    "shadow:coordinator": "pnpm --filter @shadow-cohort/coordinator demo",
+    "demo:shadow-cohort:a2a": "node scripts/demo-shadow-a2a.mjs",
     "build": "pnpm -r build",
     "build:demo": "pnpm --filter @academic/demo-portal build",
     "build:extension": "pnpm --filter @academic/extension build",
@@ -19,6 +25,7 @@
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0",
+    "tsx": "^4.20.5",
     "vitest": "^3.2.4"
   }
 }

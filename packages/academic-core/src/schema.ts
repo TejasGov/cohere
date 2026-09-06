@@ -23,6 +23,7 @@ interface AcademicEntity extends SourceReference {
 }
 
 export interface DocumentReference extends SourceReference {
+  processing?: DocumentProcessingDiagnostics;
   id: string;
   courseId: string;
   courseCode?: string;
@@ -30,6 +31,26 @@ export interface DocumentReference extends SourceReference {
   documentType: DocumentType;
   mimeType?: string;
   textExtractionStatus: TextExtractionStatus;
+}
+
+export interface DocumentProcessingDiagnostics {
+  resolvedSourceUrl?: string;
+  discoveryPage?: string;
+  classificationResult: string;
+  fetchStatus: 'pending' | 'success' | 'failed';
+  extractionStatus: string;
+  mimeType?: string;
+  pageCount?: number;
+  textCharacterCount: number;
+  factCount: number;
+  failureReason?: string;
+  truncated?: boolean;
+  assignmentsFound?: number;
+  examsFound?: number;
+  gradingPoliciesFound?: number;
+  attendancePoliciesFound?: number;
+  officeHoursFound?: number;
+  classMeetingsFound?: number;
 }
 
 export interface CoursePolicy extends AcademicEntity {
@@ -125,6 +146,15 @@ export interface ExtractionDiagnostics {
   candidateAssignmentContainers?: number;
   candidateExamLinks?: number;
   candidateExamContainers?: number;
+  scannedDomRoots?: number;
+  candidateCourseHosts?: number;
+  framesInspected?: number;
+  frameCourseDiscovery?: Array<{
+    pathname: string;
+    candidateCourseLinks: number;
+    candidateCourseHosts?: number;
+    coursesExtracted: number;
+  }>;
 }
 
 export interface AcademicState {

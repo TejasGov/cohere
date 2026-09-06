@@ -13,6 +13,32 @@ export interface DiscoveredCourse {
 }
 
 export interface CourseScanRecord extends DiscoveredCourse {
+  discoveryCandidates?: Array<{ title: string; sourceUrl: string; discoveryPage: string; classificationResult: string }>;
+  documentDiagnostics?: {
+    courseHomeVisited: boolean;
+    contentEntryFound: boolean;
+    contentEntryUrl?: string;
+    modulesVisited: number;
+    topicsVisited: number;
+    coursePagesVisited: number;
+    contentPagesVisited: number;
+    documentLinksFound: number;
+    targetDocumentsClassified: number;
+    documentsFetched: number;
+    textExtractionsSucceeded: number;
+    pdfTextExtractionsSucceeded: number;
+    htmlDocumentExtractionsSucceeded: number;
+    documentsWithFacts: number;
+    factsExtracted: number;
+    documentsFailed: number;
+  };
+  navigationSteps?: Array<{
+    pageType: 'course-home' | 'content-entry' | 'module' | 'topic' | 'assignment' | 'assessment';
+    safeUrl: string;
+    title?: string;
+    result: 'discovered' | 'visited' | 'failed' | 'ignored-limit';
+    failureReason?: string;
+  }>;
   status: CourseScanStatus;
   error?: string;
 }

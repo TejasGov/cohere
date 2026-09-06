@@ -1,0 +1,23 @@
+{
+  "name": "@shadow-cohort/peer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/server.ts" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "peer:a": "tsx src/cli.ts student-a 9101",
+    "peer:b": "tsx src/cli.ts student-b 9102",
+    "peer:c": "tsx src/cli.ts student-c 9103",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "^0.3.10",
+    "@academic/core": "workspace:*",
+    "@shadow-cohort/agent": "workspace:*",
+    "@shadow-cohort/core": "workspace:*",
+    "@strands-agents/sdk": "1.16.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": { "tsx": "^4.20.5" }
+}

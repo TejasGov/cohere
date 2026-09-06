@@ -1,0 +1,21 @@
+{
+  "name": "@shadow-cohort/coordinator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "^0.3.10",
+    "@shadow-cohort/core": "workspace:*",
+    "@strands-agents/sdk": "1.16.0"
+  },
+  "devDependencies": {
+    "@shadow-cohort/agent": "workspace:*",
+    "@shadow-cohort/peer": "workspace:*",
+    "tsx": "^4.20.5"
+  }
+}

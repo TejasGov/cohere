@@ -1,0 +1,22 @@
+{
+  "name": "@shadow-cohort/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/agent.ts",
+    "./profile": "./src/profile.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@academic/core": "workspace:*",
+    "@shadow-cohort/core": "workspace:*",
+    "@strands-agents/sdk": "1.16.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": { "tsx": "^4.20.5" }
+}

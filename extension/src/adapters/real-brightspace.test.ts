@@ -65,6 +65,35 @@ describe('RealBrightspaceAdapter', () => {
     expect(state.courses[0]).toMatchObject({ sourceId: '43000', courseCode: 'BIO 200LEC A', courseTitle: 'Evolution' });
   });
 
+  it('extracts a real-style href-bearing enrollment component without a light DOM anchor', () => {
+    load('<d2l-my-courses-card-grid><d2l-enrollment-card href="/d2l/home/21099?ignored=1" text="CSE 341LR A: Computer Organization (21099 Fall 26)- Combined" subtext="2269_21099 • Fall 26"></d2l-enrollment-card></d2l-my-courses-card-grid>');
+    const state = adapterRegistry.extract(document, ubUrl);
+    expect(state.courses).toHaveLength(1);
+    expect(state.courses[0]).toMatchObject({ sourceId: '21099', courseCode: 'CSE 341LR A', courseTitle: 'Computer Organization (21099 Fall 26)- Combined', sourceUrl: 'https://ublearns.buffalo.edu/d2l/home/21099' });
+  });
+
+  it('extracts a route stored in a stable non-href card attribute', () => {
+    load('<d2l-enrollment-card data-url="/d2l/home/21102" primary-text="CSE 250LR A: Data Structures"></d2l-enrollment-card>');
+    expect(adapterRegistry.extract(document, ubUrl).courses[0]).toMatchObject({ sourceId: '21102', courseCode: 'CSE 250LR A', courseTitle: 'Data Structures' });
+  });
+
+  it('discovers a course anchor inside an arbitrary nested open shadow root', () => {
+    load('<div id="host"></div>');
+    const host = document.querySelector<HTMLElement>('#host');
+    const shadow = host?.attachShadow({ mode: 'open' });
+    if (!shadow) throw new Error('Fixture shadow root missing');
+    shadow.innerHTML = '<section><a href="/d2l/home/21100"><h3>STA 301REC R2: Intro to Probability</h3></a></section>';
+    expect(adapterRegistry.extract(document, ubUrl).courses[0]).toMatchObject({ sourceId: '21100', courseCode: 'STA 301REC R2', courseTitle: 'Intro to Probability' });
+  });
+
+  it('discovers a course rendered in a same-origin homepage widget frame', () => {
+    load('<iframe id="courses-widget"></iframe>');
+    const frame = document.querySelector<HTMLIFrameElement>('#courses-widget');
+    if (!frame?.contentDocument) throw new Error('Fixture frame document missing');
+    frame.contentDocument.body.innerHTML = '<d2l-enrollment-card href="/d2l/home/21101" text="MTH 309LEC A: Linear Algebra"></d2l-enrollment-card>';
+    expect(adapterRegistry.extract(document, ubUrl).courses[0]).toMatchObject({ sourceId: '21101', courseCode: 'MTH 309LEC A', courseTitle: 'Linear Algebra' });
+  });
+
   it('does not select the real adapter for another host or a non-D2L path', () => {
     expect(adapterRegistry.detect(document, new URL('https://example.edu/d2l/home'))?.id).not.toBe('ub-brightspace');
     expect(adapterRegistry.detect(document, new URL('https://ublearns.buffalo.edu/'))?.id).not.toBe('ub-brightspace');

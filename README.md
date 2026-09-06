@@ -1,8 +1,24 @@
-# Academic Autopilot
+# Shadow Cohort
 
-> An autonomous academic agent that turns fragmented university systems into one continuously managed semester.
+> A privacy-first student agent that turns normalized academic workload, declared skills, and explicit availability into deterministic group-project task bids.
 
-Academic Autopilot helps students stop manually checking LMS pages, syllabi, assignment PDFs, exam schedules, announcements, and calendars just to figure out what they need to do next.
+Shadow Cohort builds on the existing Academic Bridge submission infrastructure. Academic Bridge reads academic information already visible to a logged-in student, converts it into a canonical `AcademicState`, and exposes safe read-only tools. The new local Student Agent consumes that normalized state alongside skills and availability explicitly supplied by the student. It never infers skills from courses, assignments, grades, or other private academic records.
+
+The first Shadow Cohort phase established one student agent and one structured task bid; Phase 2 builds on that verified deterministic boundary.
+
+```text
+Existing LMS adapters / current-course hydration
+                       ↓
+              AcademicState
+                       ↓
+       deterministic workload summary
+                       ↓
+       deterministic student capacity
+                       ↓
+declared skills + preferences + ProjectTask
+                       ↓
+       structured, scored TaskBid
+```
 
 The project combines a privacy-first browser extension, a canonical academic data layer, WebMCP, and a Strands Agents SDK agent layer to create one unified academic assistant.
 
@@ -589,15 +605,11 @@ The Strands integration should preserve the same principle:
 
 ```text
 apps/
-  demo-portal/
-    fictional Brightspace / Blackboard / portal environments
-
+  demo-portal/             Three fictional legacy academic interfaces
+  shadow-cohort-agent/     StudentAgent, safe Strands tools, fixtures, CLI demo
 packages/
-  academic-core/
-    canonical schemas
-    stable IDs
-    shared academic utilities
-
+  academic-core/           Canonical schema, stable IDs, shared state utilities
+  shadow-cohort-core/      Workload, capacity, privacy, and task-fit rules
 extension/
   src/adapters/
     LMS-specific adapters
@@ -759,11 +771,53 @@ Open:
 chrome://flags/#enable-webmcp-testing
 ```
 
-Enable:
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start the fictional demo portal |
+| `pnpm demo:shadow-cohort` | Run the local deterministic student task-bidding demo |
+| `pnpm build:demo` | Type-check and build the demo portal |
+| `pnpm build:extension` | Build the popup and standalone isolated/MAIN-world bundles |
+| `pnpm build` | Build every workspace package |
+| `pnpm lint` | Run ESLint |
+| `pnpm test` | Run all Vitest tests |
+| `pnpm typecheck` | Run strict TypeScript checks |
+
+Current automated baseline: **19 test files and 131 tests passing**, plus clean lint, typecheck, and workspace builds.
+
+## Shadow Cohort Student Agent
+
+The app uses the official `@strands-agents/sdk` TypeScript package. Its five tools receive normalized objects only: `get_student_profile`, `get_workload_summary`, `get_student_capacity`, `evaluate_task`, and `list_upcoming_academic_pressure`. They cannot read LMS DOM, cookies, tokens, passwords, or raw documents.
+
+Numeric workload, capacity, and fit scores are calculated in `@shadow-cohort/core`; an LLM may explain a result but cannot choose or alter those numbers. The local demo needs no model credentials. Creating and invoking the optional Strands model-backed agent uses whichever supported model credentials the caller has configured.
+
+Run the demo with:
+
+```bash
+pnpm demo:shadow-cohort
+```
+
+Only `PeerCapacitySummary` is intended for eventual peer disclosure. It contains a student ID, coarse capacity, available project hours, explicitly declared strong skills, and generic constraints—never course names, assignment or exam titles, grades, raw schedules, documents, or LMS URLs.
+
+## Shadow Cohort A2A negotiation
+
+Shadow Cohort now runs three independently addressable personal agents and a separate Coordinator over the official Strands A2A protocol. The problem it addresses is that group-project plans frequently ignore teammates' real workload and overload the wrong person. Each teammate owns a workload-aware agent; only privacy-safe capacity summaries and deterministic task bids cross the network. The Coordinator collects the complete bid round, applies hard capacity and fairness constraints, and produces a proposed plan that still requires human approval.
 
 ```text
-WebMCP for testing
+Student A peer ─┐
+Student B peer ─┼─ Strands A2A ─→ Coordinator ─→ deterministic fair allocation
+Student C peer ─┘                                      ↓
+                                           PROPOSED human-review plan
 ```
+
+The A2A servers advertise only `get_peer_capacity_summary` and `evaluate_project_task`. Their handlers reject every other operation and whitelist outbound fields. The Coordinator never imports or receives private `AcademicState` data.
+
+Run the reproducible cluster demo:
+
+```bash
+npx pnpm demo:shadow-cohort:a2a
+```
+
+This starts three local A2A servers on ports 9101–9103, waits for their official agent cards, runs the Coordinator, prints the protocol event log, bids, proposed plan, fairness summary, and project board, and then stops the peers. The peers can also be run independently with `npx pnpm shadow:peer:a`, `shadow:peer:b`, and `shadow:peer:c`; start the Coordinator with `npx pnpm shadow:coordinator`.
 
 Then relaunch Chrome.
 
@@ -777,7 +831,9 @@ Bridge: Active
 Registered Tools: 7
 ```
 
-When available, the registered tools can be inspected with:
+For missing syllabus, project, exam, or policy results, follow the [real document pipeline verification guide](docs/real-document-pipeline.md). It covers reload steps, per-course diagnostics, bounded discovery, and how to identify the first failing processing stage.
+
+### Cross-platform Blackboard proof
 
 ```javascript
 await document.modelContext.getTools()
@@ -795,27 +851,22 @@ academic_get_conflicts
 academic_get_sources
 ```
 
----
+| Phase | Status |
+| --- | --- |
+| Phase 1 — workspace, extension skeleton, and three demo environments | Complete |
+| Phase 1 verification and repair | Complete |
+| Phase 2 — canonical schema and independent adapters | Complete |
+| Real UB Learns course and semester collection | Automated verification complete; live account test manual |
+| Targeted local document analysis, provenance, and conflicts | Complete |
+| Phase 3 — standardized WebMCP read interface | Automated verification complete; live WebMCP test manual |
+| Shadow Cohort Phase 1 — one local Student Agent and deterministic TaskBid | Complete |
+| Shadow Cohort Phase 2 — real A2A negotiation and proposed fair plan | Complete |
 
-# Real UB Learns Demo
+## Future work (not part of this phase)
 
-1. Sign into UB Learns normally
-2. Open the semester/home page
-3. Open Academic Autopilot
-4. Click **Scan academic semester**
-5. Allow the bounded semester scan to finish
-6. Inspect:
-   - Courses
-   - Assignments
-   - Exams
-   - Announcements
-   - Document-derived facts
-   - Sources
-   - Conflicts
-7. Confirm WebMCP reports:
-   - Supported
-   - Bridge Active
-   - Seven registered tools
+Dynamic replanning, deadline-change events, Jira integration, and calendar integration remain intentionally excluded from this phase.
+
+Existing Academic Bridge validation work may still include:
 
 Example browser-agent questions:
 

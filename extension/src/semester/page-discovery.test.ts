@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { discoverAcademicTargets } from './page-discovery';
+import { discoverAcademicNavigation, discoverAcademicTargets } from './page-discovery';
 
 const pageUrl = new URL('https://ublearns.buffalo.edu/d2l/home/55001');
 
@@ -10,7 +10,7 @@ describe('bounded academic target discovery', () => {
     document.body.innerHTML = `
       <a href="/d2l/lms/dropbox/user/folders_list.d2l?ou=55001&token=private">Assignments</a>
       <a href="/d2l/lms/quizzing/user/quizzes_list.d2l?ou=55001">Quizzes</a>
-      <a href="/d2l/le/content/55001/Home">Homework</a>
+      <a href="/d2l/le/content/55001/Home">Content</a>
       <a href="/d2l/le/content/55001/Other">Weekly notes</a>
       <a href="https://example.test/d2l/lms/dropbox/x">External</a>`;
     expect(discoverAcademicTargets(document, pageUrl)).toEqual([
@@ -20,9 +20,9 @@ describe('bounded academic target discovery', () => {
     ]);
   });
 
-  it('caps discovery to six targets', () => {
-    document.body.innerHTML = Array.from({ length: 10 }, (_, index) =>
-      `<a href="/d2l/le/content/55001/${index}">Projects</a>`).join('');
-    expect(discoverAcademicTargets(document, pageUrl)).toHaveLength(6);
+  it('preserves a validated Brightspace module identifier', () => {
+    document.body.innerHTML = '<a href="/d2l/le/content/55001/Home?itemIdentifier=D2L.LE.Content.ContentObject.ModuleCO-9988&token=secret">Course Information</a>';
+    const [target] = discoverAcademicNavigation(document, new URL('https://ublearns.buffalo.edu/d2l/le/content/55001/Home'));
+    expect(target).toEqual({ url: 'https://ublearns.buffalo.edu/d2l/le/content/55001/Home?itemIdentifier=D2L.LE.Content.ContentObject.ModuleCO-9988', pageType: 'module', label: 'Course Information' });
   });
 });
