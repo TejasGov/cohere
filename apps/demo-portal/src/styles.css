@@ -221,81 +221,41 @@ svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-wi
 .flow-node strong { margin-bottom: 4px; }
 .flow-node small { color: var(--muted); }
 
-/* Pipe Shimmer Arrows */
+/* Pipe Shimmer Conduit */
 .flow-arrow {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 28px;
-}
-.flow-arrow::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 4px;
-  transform: translateY(-50%);
+  width: 52px;
+  height: 8px;
   background: rgba(23, 23, 26, 0.12);
+  border: 1.5px solid var(--ink);
   border-radius: 99px;
-  border: 1px solid rgba(23, 23, 26, 0.08);
+  overflow: hidden;
+  box-shadow: 2px 2px 0 var(--ink);
 }
+
 .flow-arrow::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: -40%;
+  top: 0;
+  bottom: 0;
+  left: -70%;
   width: 70%;
-  height: 5px;
-  transform: translateY(-50%);
-  background: linear-gradient(90deg, transparent 0%, rgba(169,149,255,.2) 20%, #a995ff 50%, #ffffff 75%, #a995ff 90%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, #a995ff 35%, #ffffff 65%, #a995ff 85%, transparent 100%);
   border-radius: 99px;
   opacity: 0;
-  filter: drop-shadow(0 0 6px #a995ff) drop-shadow(0 0 12px #8b5cf6);
-  animation: pipe-shimmer 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  filter: drop-shadow(0 0 8px #a995ff) drop-shadow(0 0 14px #8b5cf6);
+  animation: pipe-shimmer 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
-.flow-arrow:nth-of-type(1)::after { animation-delay: 0s; }
-.flow-arrow:nth-of-type(2)::after { animation-delay: 0.8s; }
-.flow-arrow:nth-of-type(3)::after { animation-delay: 1.6s; }
 
-.flow-arrow svg {
-  position: relative;
-  z-index: 2;
-  width: 20px;
-  height: 20px;
-  color: var(--ink);
-  transition: transform .2s ease;
-  animation: arrow-glow 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-.flow-arrow:nth-of-type(1) svg { animation-delay: 0s; }
-.flow-arrow:nth-of-type(2) svg { animation-delay: 0.8s; }
-.flow-arrow:nth-of-type(3) svg { animation-delay: 1.6s; }
+.flow-arrow:nth-of-type(1)::after { animation-delay: 0s; }
+.flow-arrow:nth-of-type(2)::after { animation-delay: 0.73s; }
+.flow-arrow:nth-of-type(3)::after { animation-delay: 1.46s; }
 
 @keyframes pipe-shimmer {
-  0% { left: -40%; opacity: 0; }
-  15% { opacity: 1; }
-  75% { opacity: 1; }
+  0% { left: -70%; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
   100% { left: 110%; opacity: 0; }
-}
-
-@keyframes arrow-glow {
-  0%, 100% {
-    color: rgba(23, 23, 26, 0.45);
-    filter: none;
-    transform: translateX(0) scale(1);
-  }
-  30% {
-    color: #6d28d9;
-    filter: drop-shadow(0 0 8px rgba(169, 149, 255, 1)) drop-shadow(0 0 16px rgba(139, 92, 246, 0.85));
-    transform: translateX(4px) scale(1.25);
-  }
-  60% {
-    color: var(--ink);
-    filter: drop-shadow(0 0 4px rgba(169, 149, 255, 0.4));
-    transform: translateX(0) scale(1);
-  }
 }
 
 .cta { padding-block: 90px; }

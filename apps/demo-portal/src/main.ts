@@ -308,11 +308,11 @@ const landing = () => `
         </div>
         <div class="flow">
           <div class="flow-node"><span>01</span><strong>Academic state</strong><small>Private + local</small></div>
-          <div class="flow-arrow">${icon('arrow')}</div>
+          <div class="flow-arrow"></div>
           <div class="flow-node"><span>02</span><strong>Capacity change</strong><small>Privacy safe notice</small></div>
-          <div class="flow-arrow">${icon('arrow')}</div>
+          <div class="flow-arrow"></div>
           <div class="flow-node active"><span>03</span><strong>Targeted rebid</strong><small>Affected tasks only</small></div>
-          <div class="flow-arrow">${icon('arrow')}</div>
+          <div class="flow-arrow"></div>
           <div class="flow-node"><span>04</span><strong>Human approval</strong><small>Nothing auto ships</small></div>
         </div>
       </div>
