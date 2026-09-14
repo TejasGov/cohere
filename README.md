@@ -1,16 +1,16 @@
-# Shadow Cohort
+# Cohere
 
 > Privacy-first, workload-aware multi-agent coordination for student group projects.
 
-Shadow Cohort gives every teammate a personal agent that understands their normalized academic workload, explicitly declared skills, availability, and task preferences. The agents exchange privacy-safe task bids over the Strands Agent-to-Agent protocol. A separate Coordinator collects every bid, enforces hard capacity and fairness rules, and generates a proposed project plan for human approval.
+Cohere gives every teammate a personal agent that understands their normalized academic workload, explicitly declared skills, availability, and task preferences. The agents exchange privacy-safe task bids over the Strands Agent-to-Agent protocol. A separate Coordinator collects every bid, enforces hard capacity and fairness rules, and generates a proposed project plan for human approval.
 
-The project evolved from **Academic Autopilot / Academic Bridge**, the existing Chrome extension and WebMCP compatibility layer in this repository. That infrastructure converts different LMS websites into one canonical `AcademicState`. Shadow Cohort uses the normalized state as local input without exposing private academic records to teammates or the Coordinator.
+The project evolved from **Academic Autopilot / Academic Bridge**, the existing Chrome extension and WebMCP compatibility layer in this repository. That infrastructure converts different LMS websites into one canonical `AcademicState`. Cohere uses the normalized state as local input without exposing private academic records to teammates or the Coordinator.
 
 ## The problem
 
 Group-project plans are often based on incomplete information. One teammate may have the right technical skills but also have several exams and deadlines that week. Static plans can therefore overload the wrong person and become obsolete quickly.
 
-Shadow Cohort separates three questions:
+Cohere separates three questions:
 
 1. Does the student have the explicitly declared skills for this task?
 2. Does the student currently have enough safe project capacity?
@@ -158,7 +158,6 @@ The default API is `http://127.0.0.1:9200`. It supports polling and deliberately
 Install dependencies:
 
 ```powershell
-cd "C:\Users\atsha\OneDrive\Documents\Desktop\Web_MCP"
 npx pnpm install
 ```
 
@@ -250,7 +249,7 @@ The preserved Chrome extension supports:
 - seven read-only WebMCP tools;
 - developer diagnostics and normalized JSON inspection.
 
-The automatic UB homepage course-card discovery remains sensitive to Brightspace's dynamically rendered shadow DOM. Shadow Cohort does not depend on that path: students can hydrate state by visiting supported individual course pages.
+The automatic UB homepage course-card discovery remains sensitive to Brightspace's dynamically rendered shadow DOM. Cohere does not depend on that path: students can hydrate state by visiting supported individual course pages.
 
 ### WebMCP tools
 
@@ -296,7 +295,7 @@ npx pnpm build:extension
 
 ```text
 apps/
-  demo-portal/                 Fictional legacy academic sites
+  demo-portal/                 Fictional legacy academic sites and Cohere landing page / live dashboard
   shadow-cohort-agent/         Personal StudentAgent, tools, fixtures, demo
   shadow-cohort-peer/          Strands A2A server, agent card, safe handlers
   shadow-cohort-coordinator/   A2A client, coordinator, allocator demo, board
@@ -335,15 +334,3 @@ scripts/
 ## Verification
 
 The test suite covers workload and capacity, all project-event types, replan decisions, affected-task selection, movement penalties, real network rebidding, offline/timeout behavior, malformed outbound bids, exhausted capacity, version history, human decisions, dashboard endpoints, and privacy-safe serialization. The exact current counts and demo results are reported after running the commands rather than being maintained as stale prose here.
-
-## Intentionally not implemented
-
-- Jira integration;
-- calendar integration;
-- additional LMS crawling;
-- automatic approval;
-- final dashboard UI;
-- AgentCore or cloud deployment;
-- sophisticated deadline scheduling beyond deterministic feasibility-review plumbing.
-
-The current milestone ends with three independently addressable private Student Agents producing a fair initial plan, reacting to a real workload-derived capacity change, obtaining fresh targeted A2A bids, and proposing the minimum necessary ownership change for human review.
