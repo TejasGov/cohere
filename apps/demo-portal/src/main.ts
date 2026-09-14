@@ -145,9 +145,12 @@ const landing = () => `
         <div class="orb-ring orb-ring-2"></div>
         <div class="orb-ring orb-ring-3"></div>
         <div class="live-orb" id="live-orb">
-          <div class="orb-core"></div>
+          <div class="orb-body"></div>
+          <div class="orb-eyes">
+            <span class="orb-eye"></span>
+            <span class="orb-eye"></span>
+          </div>
           <div class="orb-glow"></div>
-          <div class="orb-shimmer"></div>
         </div>
         <div class="orb-label orb-label-tl">${icon('shield')}<span>Privacy safe</span></div>
         <div class="orb-label orb-label-tr">${icon('users')}<span>3 peers active</span></div>

@@ -65,33 +65,40 @@ svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-wi
 .hero-proof strong { font-size: 1.55rem; letter-spacing: -.04em; }
 .hero-proof span { color: var(--muted); font-size: .78rem; margin-top: 2px; }
 
-/* Live Orb */
+/* Ghost Orb */
 .hero-orb-wrap { position: relative; width: 100%; min-height: 500px; display: grid; place-items: center; }
-.live-orb { position: relative; width: 260px; height: 260px; cursor: pointer; transition: transform .55s cubic-bezier(.22,1,.36,1); z-index: 4; }
-.orb-core { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #f9e49b 0 10%, #b8a3ff 30%, #80dfc8 58%, #17171a 80%); animation: orb-breathe 4.5s ease-in-out infinite; box-shadow: 0 0 80px 20px rgba(169,149,255,.38), inset 0 0 40px 10px rgba(255,255,255,.12); }
-.orb-glow { position: absolute; inset: -30px; border-radius: 50%; background: radial-gradient(circle, rgba(169,149,255,.35) 0%, transparent 70%); animation: orb-pulse 3.8s ease-in-out infinite alternate; pointer-events: none; }
-.orb-shimmer { position: absolute; inset: 8px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,.18) 20%, transparent 40%); animation: orb-spin 6s linear infinite; pointer-events: none; }
-@keyframes orb-breathe { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.06);filter:brightness(1.1)} }
-@keyframes orb-pulse { 0%{opacity:.55;transform:scale(.96)} 100%{opacity:.9;transform:scale(1.04)} }
-@keyframes orb-spin { to{transform:rotate(360deg)} }
+.live-orb { position: relative; width: 260px; height: 260px; cursor: pointer; transition: transform .55s cubic-bezier(.22,1,.36,1); z-index: 4; animation: orb-float 4.5s ease-in-out infinite; }
+.orb-body { position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #ffffff 0%, #f3f1ef 38%, #e0dbd7 68%, #cdc8c3 100%);
+  box-shadow: 0 28px 72px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.10), inset 0 -12px 28px rgba(0,0,0,.08), inset 0 8px 18px rgba(255,255,255,.9);
+  animation: orb-breathe 4.5s ease-in-out infinite;
+}
+.orb-eyes { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 30px; align-items: center; }
+.orb-eye { display: block; width: 20px; height: 27px; background: #1c1a18; border-radius: 6px 6px 8px 8px; animation: eye-blink 6s ease-in-out infinite; }
+.orb-eye:last-child { animation-delay: .1s; }
+@keyframes eye-blink { 0%,87%,100%{transform:scaleY(1)} 93%{transform:scaleY(.07)} }
+.orb-glow { position: absolute; inset: -28px; border-radius: 50%; background: radial-gradient(circle, rgba(210,206,200,.55) 0%, transparent 68%); animation: orb-pulse 3.8s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes orb-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }
+@keyframes orb-pulse { 0%{opacity:.5;transform:scale(.97)} 100%{opacity:.88;transform:scale(1.04)} }
+@keyframes orb-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
 
-.orb-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(169,149,255,.22); inset: 0; margin: auto; pointer-events: none; animation: ring-expand 3s linear infinite; }
+.orb-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(23,23,26,.1); inset: 0; margin: auto; pointer-events: none; animation: ring-expand 3s linear infinite; }
 .orb-ring-1 { width: 300px; height: 300px; animation-delay: 0s; }
-.orb-ring-2 { width: 380px; height: 380px; animation-delay: 1s; opacity: .6; }
-.orb-ring-3 { width: 460px; height: 460px; animation-delay: 2s; opacity: .35; }
-@keyframes ring-expand { 0%{opacity:.55;transform:scale(.92)} 100%{opacity:0;transform:scale(1.08)} }
+.orb-ring-2 { width: 390px; height: 390px; animation-delay: 1s; opacity: .5; }
+.orb-ring-3 { width: 480px; height: 480px; animation-delay: 2s; opacity: .28; }
+@keyframes ring-expand { 0%{opacity:.5;transform:scale(.93)} 100%{opacity:0;transform:scale(1.07)} }
 
 .orb-label { position: absolute; display: flex; align-items: center; gap: 8px; padding: 9px 13px; background: rgba(247,245,240,.88); border: 1.5px solid var(--ink); backdrop-filter: blur(14px); box-shadow: 4px 4px 0 rgba(23,23,26,.8); font-size: .75rem; font-weight: 700; white-space: nowrap; transition: transform .35s cubic-bezier(.22,1,.36,1); z-index: 5; }
 .orb-label svg { width: 15px; height: 15px; flex-shrink: 0; }
-.orb-label-tl { top: 60px; left: 20px; transform-origin: center; animation: label-float 5s ease-in-out infinite; }
+.orb-label-tl { top: 60px; left: 20px; animation: label-float 5s ease-in-out infinite; }
 .orb-label-tr { top: 80px; right: 18px; animation: label-float 5s ease-in-out infinite 1.2s; }
 .orb-label-bl { bottom: 80px; left: 18px; animation: label-float 5s ease-in-out infinite 2.4s; }
 .orb-label-br { bottom: 60px; right: 20px; animation: label-float 5s ease-in-out infinite 3.6s; }
 @keyframes label-float { 0%,100%{translate:0 0} 50%{translate:0 -7px} }
 
 .orb-center-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; }
-.orb-center-text span { font: 700 .65rem/1 monospace; letter-spacing: .18em; color: rgba(255,255,255,.75); mix-blend-mode: overlay; text-shadow: 0 0 12px rgba(255,255,255,.9); animation: text-flicker 2.8s ease-in-out infinite; }
-@keyframes text-flicker { 0%,100%{opacity:.7} 50%{opacity:1} }
+.orb-center-text span { font: 700 .6rem/1 monospace; letter-spacing: .18em; color: rgba(28,26,24,.35); animation: text-flicker 2.8s ease-in-out infinite; }
+@keyframes text-flicker { 0%,100%{opacity:.4} 50%{opacity:.75} }
 
 /* Plan Preview Section */
 .plan-preview { padding-block: 100px; display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; }
@@ -123,16 +130,29 @@ svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-wi
 .soft-peach { background: var(--peach); }
 .bento-dark { grid-column: span 4; min-height: 390px; background: var(--ink); color: #fff; display: grid; grid-template-columns: .9fr 1.1fr; gap: 38px; }
 
-/* Dithering halftone overlay */
-.dither-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .18;
-  background-image: radial-gradient(circle, rgba(23,23,26,.55) 1px, transparent 1px);
-  background-size: 6px 6px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%);
+/* Dithering — corners only, animated */
+.dither-overlay { position: absolute; inset: 0; pointer-events: none; z-index: -1;
+  background-image: radial-gradient(circle, rgba(23,23,26,.62) 1px, transparent 1px);
+  background-size: 8px 8px;
+  -webkit-mask-image:
+    radial-gradient(ellipse 120px 100px at 0% 0%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 100% 0%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 0% 100%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 100% 100%, black, transparent);
+  mask-image:
+    radial-gradient(ellipse 120px 100px at 0% 0%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 100% 0%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 0% 100%, black, transparent),
+    radial-gradient(ellipse 120px 100px at 100% 100%, black, transparent);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  animation: dither-pulse 3.5s ease-in-out infinite;
 }
-.dither-dark { opacity: .22;
-  background-image: radial-gradient(circle, rgba(255,255,255,.6) 1px, transparent 1px);
+@keyframes dither-pulse { 0%,100%{opacity:.28} 50%{opacity:.52} }
+.dither-dark {
+  background-image: radial-gradient(circle, rgba(255,255,255,.65) 1px, transparent 1px);
 }
-.bento-card > *:not(.dither-overlay) { position: relative; z-index: 1; }
+.bento-card > .card-number { position: absolute; }
 .card-number { position: absolute; right: 20px; top: 19px; font: 700 .7rem/1 monospace; opacity: .58; }
 .card-number.light { color: #fff; }
 .card-icon { width: 46px; height: 46px; border: 1.5px solid var(--ink); background: rgba(255,255,255,.55); display: grid; place-items: center; box-shadow: 3px 3px 0 var(--ink); }
