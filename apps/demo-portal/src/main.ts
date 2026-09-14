@@ -722,7 +722,7 @@ function initLiveOrb(): void {
   let statusIndex = 0;
 
   // CSS transition for smooth eye return
-  if (eyes) eyes.style.transition = 'transform .12s ease-out';
+  if (eyes) eyes.style.transition = 'transform .06s ease-out';
 
   // Cycle status text
   const statusTimer = window.setInterval(() => {
@@ -752,8 +752,8 @@ function initLiveOrb(): void {
       const orbRect = orb!.getBoundingClientRect();
       const ox = orbRect.left + orbRect.width / 2;
       const oy = orbRect.top + orbRect.height / 2;
-      const ex = Math.max(-8, Math.min(8, (e.clientX - ox) * 0.12));
-      const ey = Math.max(-5, Math.min(5, (e.clientY - oy) * 0.08));
+      const ex = Math.max(-48, Math.min(48, (e.clientX - ox) * 0.58));
+      const ey = Math.max(-42, Math.min(42, (e.clientY - oy) * 0.52));
       eyes.style.transform = `translate(calc(-50% + ${ex}px), calc(-50% + ${ey}px))`;
     }
   }
