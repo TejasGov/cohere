@@ -103,9 +103,9 @@ const icon = (name: string) => {
 };
 
 const logo = () => `
-  <a class="brand" href="/" aria-label="Shadow Cohort home">
-    <span class="brand-mark"><i></i><i></i><i></i></span>
-    <span>Shadow Cohort</span>
+  <a class="brand" href="/" aria-label="Cohere home">
+    <img src="/cohere-logo-mark.png" alt="Cohere logo" class="brand-logo-img" />
+    <span>Cohere</span>
   </a>`;
 
 const landing = () => `
@@ -127,7 +127,7 @@ const landing = () => `
         <div class="eyebrow">${icon('spark')} Multi-agent coordination for student teams</div>
         <h1>Group work that adapts <span>before</span> someone burns out.</h1>
         <p>
-          Shadow Cohort gives every teammate a private workload-aware agent. Agents negotiate task ownership using safe capacity, declared skills, and fairness, without exposing academic records.
+          Cohere gives every teammate a private workload-aware agent. Agents negotiate task ownership using safe capacity, declared skills, and fairness, without exposing academic records.
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="/dashboard">Launch live demo ${icon('arrow')}</a>
@@ -185,7 +185,7 @@ const landing = () => `
         </ul>
         <a class="button button-dark" href="/dashboard">Open the live dashboard ${icon('arrow')}</a>
       </div>
-      <div class="plan-preview-visual" aria-label="Shadow Cohort plan preview">
+      <div class="plan-preview-visual" aria-label="Cohere plan preview">
         <div class="shader-orb orb-one"></div>
         <div class="shader-orb orb-two"></div>
         <div class="visual-card visual-main">
@@ -366,7 +366,7 @@ const dashboardShell = () => `
     <section class="dashboard-content">
       <header class="dashboard-topbar">
         <div>
-          <span class="micro-label">SHADOW COHORT / LIVE COORDINATOR</span>
+          <span class="micro-label">COHERE / LIVE COORDINATOR</span>
           <h1 id="project-title">Campus Marketplace</h1>
         </div>
         <div class="topbar-actions">
@@ -597,7 +597,7 @@ async function loadDashboard(): Promise<void> {
 
 function dashboard(): void {
   app.innerHTML = dashboardShell();
-  document.title = 'Shadow Cohort Dashboard';
+  document.title = 'Cohere Dashboard';
   document.querySelector<HTMLButtonElement>('#refresh-button')?.addEventListener('click', () => void loadDashboard());
   void loadDashboard();
   dashboardTimer = window.setInterval(() => void loadDashboard(), 5000);
@@ -615,7 +615,7 @@ const legacyNav = (page: LegacyPage) => `
     <a class="${page === 'brightspace' ? 'active' : ''}" href="/brightspace">Brightspace mock</a>
     <a class="${page === 'blackboard' ? 'active' : ''}" href="/blackboard">Blackboard mock</a>
     <a class="${page === 'portal' ? 'active' : ''}" href="/portal">Student portal</a>
-    <a href="/">Shadow Cohort</a>
+    <a href="/">Cohere</a>
   </nav>`;
 
 const controls = () => `
@@ -691,7 +691,7 @@ function render(): void {
     return;
   }
   app.innerHTML = landing();
-  document.title = 'Shadow Cohort - Privacy-first team coordination';
+  document.title = 'Cohere - Privacy-first team coordination';
 }
 
 window.addEventListener('popstate', () => {
