@@ -775,20 +775,168 @@ function initLiveOrb(): void {
   };
 }
 
-render();
+// ── WebGL Bento Dither ───────────────────────────────────────────────────────
 
-// Wire orb after every landing page render
-const _originalRender = render;
-function renderAndInit(): void {
-  const prev = document.getElementById('live-orb-root') as (HTMLElement & { _orbCleanup?: () => void }) | null;
-  if (prev?._orbCleanup) prev._orbCleanup();
-  _originalRender();
-  requestAnimationFrame(() => initLiveOrb());
+const _DVERT = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
+const _DFRAG = `precision mediump float;
+uniform vec2 uR;uniform float uT;uniform vec2 uM;uniform float uMr;
+uniform vec3 uWc;uniform vec3 uBg;uniform float uCn;
+uniform float uWa;uniform float uWf;uniform float uWs;
+uniform sampler2D uBy;
+void main(){
+  vec2 uv=gl_FragCoord.xy/uR;uv.y=1.-uv.y;
+  vec2 m=uM/uR;float mf=smoothstep(uMr,0.,length(uv-m))*.45;
+  float t=uT*uWs;
+  float w =sin(uv.x*uWf*6.2832+t     )*uWa;
+        w+=sin(uv.y*uWf*8.1701+t*.7  )*uWa*.6;
+        w+=sin((uv.x+uv.y)*uWf*4.933+t*1.2)*uWa*.4;
+        w=clamp(w*.5+.5+mf,0.,1.);
+  vec3 c=mix(uBg,uWc,w);
+  float th=texture2D(uBy,mod(gl_FragCoord.xy,4.)/4.).r;
+  c=floor(c*uCn+th)/uCn;
+  gl_FragColor=vec4(c,1.);
+}`;
+
+// 4×4 Bayer matrix (normalised 0-255)
+const _BAYER = new Uint8Array([0,128,32,160,192,64,224,96,48,176,16,144,240,112,208,80]);
+
+interface _DC {
+  wc: [number,number,number]; bg: [number,number,number];
+  cn: number; wa: number; wf: number; ws: number; mr: number;
 }
 
-// Re-export render as renderAndInit for routing
-window.addEventListener('popstate', () => {
-  renderAndInit();
-});
+function _mkDither(el: HTMLElement, cfg: _DC): (()=>void)|null {
+  // Remove the static CSS dither on this card — WebGL takes over
+  el.querySelector('.dither-overlay')?.remove();
+
+  const cv = document.createElement('canvas');
+  cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;display:block;';
+  cv.setAttribute('aria-hidden','true');
+  el.insertBefore(cv, el.firstChild);
+
+  const gl = cv.getContext('webgl') as WebGLRenderingContext|null;
+  if (!gl) { cv.remove(); return null; }
+
+  const mkSh = (t: number, src: string) => {
+    const s = gl.createShader(t)!;
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  };
+  const prog = gl.createProgram()!;
+  gl.attachShader(prog, mkSh(gl.VERTEX_SHADER, _DVERT));
+  gl.attachShader(prog, mkSh(gl.FRAGMENT_SHADER, _DFRAG));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { cv.remove(); return null; }
+  gl.useProgram(prog);
+
+  // Full-screen quad
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  // Bayer 4×4 texture (REPEAT so it tiles across the card)
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,4,4,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,_BAYER);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+
+  const uR=gl.getUniformLocation(prog,'uR'), uT=gl.getUniformLocation(prog,'uT'),
+        uM=gl.getUniformLocation(prog,'uM'), uMr=gl.getUniformLocation(prog,'uMr'),
+        uWc=gl.getUniformLocation(prog,'uWc'), uBg=gl.getUniformLocation(prog,'uBg'),
+        uCn=gl.getUniformLocation(prog,'uCn'), uWa=gl.getUniformLocation(prog,'uWa'),
+        uWf=gl.getUniformLocation(prog,'uWf'), uWs=gl.getUniformLocation(prog,'uWs'),
+        uBy=gl.getUniformLocation(prog,'uBy');
+
+  gl.uniform3fv(uWc, cfg.wc); gl.uniform3fv(uBg, cfg.bg);
+  gl.uniform1f(uCn, cfg.cn); gl.uniform1f(uWa, cfg.wa);
+  gl.uniform1f(uWf, cfg.wf); gl.uniform1f(uWs, cfg.ws);
+  gl.uniform1f(uMr, cfg.mr); gl.uniform1i(uBy, 0);
+
+  let mx = -9999, my = -9999, dpr = Math.min(devicePixelRatio, 2);
+  const onMM = (e: MouseEvent) => {
+    const r = cv.getBoundingClientRect();
+    mx = (e.clientX - r.left) * dpr;
+    my = (r.bottom - e.clientY) * dpr; // WebGL Y flipped
+  };
+  el.addEventListener('mousemove', onMM);
+
+  let W = 0, H = 0;
+  const resize = () => {
+    dpr = Math.min(devicePixelRatio, 2);
+    const r = el.getBoundingClientRect();
+    const nw = Math.round(r.width * dpr), nh = Math.round(r.height * dpr);
+    if (nw === W && nh === H) return;
+    W = nw; H = nh;
+    cv.width = W; cv.height = H;
+    gl.viewport(0, 0, W, H);
+    gl.uniform2f(uR, W, H);
+  };
+  resize();
+  const ro = new ResizeObserver(resize);
+  ro.observe(el);
+
+  let raf = 0;
+  const t0 = performance.now();
+  const draw = () => {
+    resize();
+    gl.uniform1f(uT, (performance.now() - t0) * 0.001);
+    gl.uniform2f(uM, mx, my);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    raf = requestAnimationFrame(draw);
+  };
+  raf = requestAnimationFrame(draw);
+
+  return () => {
+    cancelAnimationFrame(raf);
+    ro.disconnect();
+    el.removeEventListener('mousemove', onMM);
+    (gl.getExtension('WEBGL_lose_context') as WEBGL_lose_context|null)?.loseContext();
+    cv.remove();
+  };
+}
+
+// Per-card configs — card 01 (lilac) and card 03 (peach), slightly toned down
+const _BCFGS: _DC[] = [
+  { bg:[0.84,0.81,0.98], wc:[0.46,0.34,0.80], cn:5, wa:0.40, wf:0.70, ws:0.038, mr:0.30 },
+  { bg:[0.98,0.84,0.70], wc:[0.84,0.42,0.17], cn:5, wa:0.38, wf:0.65, ws:0.036, mr:0.30 },
+];
+
+let _bdCleanup: (()=>void)|null = null;
+
+function initBentoDither(): void {
+  _bdCleanup?.();
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('article.bento-card'));
+  const fns: Array<(()=>void)|null> = [];
+  cards.forEach((c, i) => {
+    if (i % 2 === 0) {
+      fns.push(_mkDither(c, _BCFGS[Math.floor(i / 2) % _BCFGS.length]!));
+    }
+  });
+  _bdCleanup = () => fns.forEach(f => f?.());
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+
+render();
+
+const _originalRender = render;
+function renderAndInit(): void {
+  const prev = document.getElementById('live-orb-root') as (HTMLElement & { _orbCleanup?: ()=>void })|null;
+  if (prev?._orbCleanup) prev._orbCleanup();
+  _bdCleanup?.();
+  _originalRender();
+  requestAnimationFrame(() => {
+    initLiveOrb();
+    initBentoDither();
+  });
+}
+
+window.addEventListener('popstate', () => { renderAndInit(); });
 
 initLiveOrb();
+initBentoDither();
