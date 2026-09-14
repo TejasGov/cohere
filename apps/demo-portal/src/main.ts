@@ -122,7 +122,7 @@ const landing = () => `
       <a class="button button-small button-dark" href="/dashboard">Open dashboard ${icon('arrow')}</a>
     </header>
 
-    <section class="hero shell">
+    <section class="hero hero-orb shell">
       <div class="hero-copy">
         <div class="eyebrow">${icon('spark')} Multi-agent coordination for student teams</div>
         <h1>Group work that adapts <span>before</span> someone burns out.</h1>
@@ -140,7 +140,49 @@ const landing = () => `
         </div>
       </div>
 
-      <div class="hero-visual" aria-label="Shadow Cohort system preview">
+      <div class="hero-orb-wrap" aria-label="Live agent negotiation orb" id="live-orb-root">
+        <div class="orb-ring orb-ring-1"></div>
+        <div class="orb-ring orb-ring-2"></div>
+        <div class="orb-ring orb-ring-3"></div>
+        <div class="live-orb" id="live-orb">
+          <div class="orb-core"></div>
+          <div class="orb-glow"></div>
+          <div class="orb-shimmer"></div>
+        </div>
+        <div class="orb-label orb-label-tl">${icon('shield')}<span>Privacy safe</span></div>
+        <div class="orb-label orb-label-tr">${icon('users')}<span>3 peers active</span></div>
+        <div class="orb-label orb-label-bl">${icon('bolt')}<span>18 live bids</span></div>
+        <div class="orb-label orb-label-br">${icon('pulse')}<span>Replan ready</span></div>
+        <div class="orb-center-text"><span>NEGOTIATING</span></div>
+      </div>
+    </section>
+
+    <section class="signal-bar">
+      <div class="shell signal-inner">
+        <span>Built on</span>
+        <strong>Strands Agents</strong>
+        <i></i>
+        <strong>A2A protocol</strong>
+        <i></i>
+        <strong>Deterministic allocation</strong>
+        <i></i>
+        <strong>Human approval</strong>
+      </div>
+    </section>
+
+    <section class="plan-preview shell">
+      <div class="plan-preview-copy">
+        <span class="section-kicker">LIVE COORDINATOR OUTPUT</span>
+        <h2>An inspectable plan, proposed in real time.</h2>
+        <p>After every peer submits a privacy-safe bid, the coordinator assembles a capacity-checked allocation and surfaces it for human review. Nothing is assigned automatically — the team approves, or asks for changes.</p>
+        <ul class="plan-preview-bullets">
+          <li>${icon('check')} Capacity enforced before any assignment is made</li>
+          <li>${icon('check')} Fairness penalty prevents one person from carrying the load</li>
+          <li>${icon('check')} Human approval required to activate any plan version</li>
+        </ul>
+        <a class="button button-dark" href="/dashboard">Open the live dashboard ${icon('arrow')}</a>
+      </div>
+      <div class="plan-preview-visual" aria-label="Shadow Cohort plan preview">
         <div class="shader-orb orb-one"></div>
         <div class="shader-orb orb-two"></div>
         <div class="visual-card visual-main">
@@ -183,19 +225,6 @@ const landing = () => `
       </div>
     </section>
 
-    <section class="signal-bar">
-      <div class="shell signal-inner">
-        <span>Built on</span>
-        <strong>Strands Agents</strong>
-        <i></i>
-        <strong>A2A protocol</strong>
-        <i></i>
-        <strong>Deterministic allocation</strong>
-        <i></i>
-        <strong>Human approval</strong>
-      </div>
-    </section>
-
     <section id="how" class="section shell">
       <div class="section-heading">
         <div>
@@ -207,6 +236,7 @@ const landing = () => `
 
       <div class="bento">
         <article class="bento-card bento-wide soft-lilac">
+          <div class="dither-overlay"></div>
           <div class="card-number">01</div>
           <div class="card-icon">${icon('users')}</div>
           <h3>Every student gets a personal agent.</h3>
@@ -219,6 +249,7 @@ const landing = () => `
         </article>
 
         <article class="bento-card soft-mint">
+          <div class="dither-overlay"></div>
           <div class="card-number">02</div>
           <div class="card-icon">${icon('bolt')}</div>
           <h3>Agents bid, not people.</h3>
@@ -227,6 +258,7 @@ const landing = () => `
         </article>
 
         <article class="bento-card soft-peach">
+          <div class="dither-overlay"></div>
           <div class="card-number">03</div>
           <div class="card-icon">${icon('grid')}</div>
           <h3>Fairness is a constraint.</h3>
@@ -239,6 +271,7 @@ const landing = () => `
         </article>
 
         <article id="privacy" class="bento-card bento-wide bento-dark">
+          <div class="dither-overlay dither-dark"></div>
           <div class="privacy-copy">
             <div class="card-number light">04</div>
             <div class="card-icon light">${icon('lock')}</div>
@@ -674,4 +707,66 @@ document.addEventListener('click', (e) => {
   }
 });
 
+function initLiveOrb(): void {
+  const root = document.getElementById('live-orb-root');
+  const orb = document.getElementById('live-orb');
+  if (!root || !orb) return;
+
+  const labels = root.querySelectorAll<HTMLElement>('.orb-label');
+  const centerText = root.querySelector<HTMLElement>('.orb-center-text span');
+  const statuses = ['NEGOTIATING', 'BIDDING', 'PROPOSING', 'APPROVING'];
+  let statusIndex = 0;
+
+  // Cycle status text
+  const statusTimer = window.setInterval(() => {
+    statusIndex = (statusIndex + 1) % statuses.length;
+    if (centerText) centerText.textContent = statuses[statusIndex] ?? 'NEGOTIATING';
+  }, 2800);
+
+  // Mouse parallax
+  function onMove(e: MouseEvent): void {
+    const rect = root!.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    orb!.style.transform = `translate(${dx * 18}px, ${dy * 12}px)`;
+    labels.forEach((label, i) => {
+      const depth = 0.5 + i * 0.12;
+      (label as HTMLElement).style.transform = `translate(${dx * 10 * depth}px, ${dy * 8 * depth}px)`;
+    });
+  }
+
+  function onLeave(): void {
+    orb!.style.transform = '';
+    labels.forEach((label) => { (label as HTMLElement).style.transform = ''; });
+  }
+
+  root.addEventListener('mousemove', onMove);
+  root.addEventListener('mouseleave', onLeave);
+
+  // Store cleanup on root for next render
+  (root as HTMLElement & { _orbCleanup?: () => void })._orbCleanup = () => {
+    window.clearInterval(statusTimer);
+    root.removeEventListener('mousemove', onMove);
+    root.removeEventListener('mouseleave', onLeave);
+  };
+}
+
 render();
+
+// Wire orb after every landing page render
+const _originalRender = render;
+function renderAndInit(): void {
+  const prev = document.getElementById('live-orb-root') as (HTMLElement & { _orbCleanup?: () => void }) | null;
+  if (prev?._orbCleanup) prev._orbCleanup();
+  _originalRender();
+  requestAnimationFrame(() => initLiveOrb());
+}
+
+// Re-export render as renderAndInit for routing
+window.addEventListener('popstate', () => {
+  renderAndInit();
+});
+
+initLiveOrb();
