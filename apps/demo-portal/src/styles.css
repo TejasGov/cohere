@@ -67,11 +67,11 @@ svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-wi
 
 /* Ghost Orb */
 .hero-orb-wrap { position: relative; width: 100%; min-height: 500px; display: grid; place-items: center; }
-.live-orb { position: relative; width: 260px; height: 260px; cursor: pointer; transition: transform .55s cubic-bezier(.22,1,.36,1); z-index: 4; animation: orb-float 4.5s ease-in-out infinite; }
+.live-orb { position: relative; width: 260px; height: 260px; cursor: pointer; transition: transform .55s cubic-bezier(.22,1,.36,1); z-index: 4; }
 .orb-body { position: absolute; inset: 0; border-radius: 50%;
   background: radial-gradient(circle at 38% 30%, #ffffff 0%, #f3f1ef 38%, #e0dbd7 68%, #cdc8c3 100%);
   box-shadow: 0 28px 72px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.10), inset 0 -12px 28px rgba(0,0,0,.08), inset 0 8px 18px rgba(255,255,255,.9);
-  animation: orb-breathe 4.5s ease-in-out infinite;
+  animation: orb-breathe 4.5s ease-in-out infinite, orb-float 4.5s ease-in-out infinite;
 }
 .orb-eyes { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 30px; align-items: center; }
 .orb-eye { display: block; width: 20px; height: 27px; background: #1c1a18; border-radius: 6px 6px 8px 8px; animation: eye-blink 6s ease-in-out infinite; }

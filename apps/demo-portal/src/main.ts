@@ -717,8 +717,12 @@ function initLiveOrb(): void {
 
   const labels = root.querySelectorAll<HTMLElement>('.orb-label');
   const centerText = root.querySelector<HTMLElement>('.orb-center-text span');
+  const eyes = orb.querySelector<HTMLElement>('.orb-eyes');
   const statuses = ['NEGOTIATING', 'BIDDING', 'PROPOSING', 'APPROVING'];
   let statusIndex = 0;
+
+  // CSS transition for smooth eye return
+  if (eyes) eyes.style.transition = 'transform .12s ease-out';
 
   // Cycle status text
   const statusTimer = window.setInterval(() => {
@@ -726,23 +730,38 @@ function initLiveOrb(): void {
     if (centerText) centerText.textContent = statuses[statusIndex] ?? 'NEGOTIATING';
   }, 2800);
 
-  // Mouse parallax
+  // Mouse parallax + eye tracking
   function onMove(e: MouseEvent): void {
     const rect = root!.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = (e.clientX - cx) / (rect.width / 2);
     const dy = (e.clientY - cy) / (rect.height / 2);
+
+    // Whole orb follows cursor gently
     orb!.style.transform = `translate(${dx * 18}px, ${dy * 12}px)`;
+
+    // Labels parallax at different depths
     labels.forEach((label, i) => {
       const depth = 0.5 + i * 0.12;
       (label as HTMLElement).style.transform = `translate(${dx * 10 * depth}px, ${dy * 8 * depth}px)`;
     });
+
+    // Eyes track cursor — use cursor position relative to orb center
+    if (eyes) {
+      const orbRect = orb!.getBoundingClientRect();
+      const ox = orbRect.left + orbRect.width / 2;
+      const oy = orbRect.top + orbRect.height / 2;
+      const ex = Math.max(-8, Math.min(8, (e.clientX - ox) * 0.12));
+      const ey = Math.max(-5, Math.min(5, (e.clientY - oy) * 0.08));
+      eyes.style.transform = `translate(calc(-50% + ${ex}px), calc(-50% + ${ey}px))`;
+    }
   }
 
   function onLeave(): void {
     orb!.style.transform = '';
     labels.forEach((label) => { (label as HTMLElement).style.transform = ''; });
+    if (eyes) eyes.style.transform = 'translate(-50%, -50%)';
   }
 
   root.addEventListener('mousemove', onMove);
