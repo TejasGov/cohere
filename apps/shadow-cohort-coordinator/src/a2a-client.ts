@@ -2,6 +2,8 @@ import { A2AAgent } from '@strands-agents/sdk/a2a';
 import {
   validatePeerCapacitySummary,
   validatePeerTaskBidResponse,
+  validateCapacityChangeNotice,
+  type CapacityChangeNotice,
   type PeerCapacitySummary,
   type PeerDescriptor,
   type PeerTaskBidResponse,
@@ -49,6 +51,12 @@ export class A2APeerClient {
   async evaluateTask(task: ProjectTask): Promise<PeerTaskBidResponse> {
     const value = await this.invoke({ operation: 'evaluate_project_task', task });
     if (!validatePeerTaskBidResponse(value) || value.studentId !== this.peer.studentId || value.taskId !== task.id) throw new Error('Peer returned an invalid or mismatched TaskBid.');
+    return value;
+  }
+
+  async simulateAcademicOverload(): Promise<CapacityChangeNotice> {
+    const value = await this.invoke({ operation: 'simulate_academic_overload' });
+    if (!validateCapacityChangeNotice(value) || value.studentId !== this.peer.studentId) throw new Error('Peer returned an invalid capacity-change notice.');
     return value;
   }
 }

@@ -1,18 +1,20 @@
 import {
   allocateProject,
   approvePlan,
+  calculateTeamFeasibility,
   requestChanges,
   validateGroupProject,
   type GroupProject,
   type PeerBidRecord,
   type PeerCapacitySummary,
   type PeerDescriptor,
-  type ProjectPlan
+  type ProjectPlan,
+  type TeamFeasibilitySummary
 } from '@shadow-cohort/core';
 import { A2APeerClient } from './a2a-client';
 
 export interface NegotiationEvent { at: string; message: string; }
-export interface NegotiationResult { plan: ProjectPlan; events: NegotiationEvent[]; connectedPeers: PeerDescriptor[]; bidsByTask: Record<string, PeerBidRecord[]>; }
+export interface NegotiationResult { plan: ProjectPlan; events: NegotiationEvent[]; connectedPeers: PeerDescriptor[]; bidsByTask: Record<string, PeerBidRecord[]>; capacities: Record<string, PeerCapacitySummary>; feasibility: TeamFeasibilitySummary; }
 
 export class CoordinatorAgent {
   constructor(private readonly peers: PeerDescriptor[], private readonly timeoutMs = 4_000) {}
@@ -38,7 +40,7 @@ export class CoordinatorAgent {
     }));
     clients.sort((a, b) => a.peer.studentId.localeCompare(b.peer.studentId));
 
-    const capacities: Record<string, PeerCapacitySummary | undefined> = {};
+    const capacities: Record<string, PeerCapacitySummary> = {};
     const capacityResults = await Promise.allSettled(clients.map(async (client) => ({ client, capacity: await client.getCapacity() })));
     for (const result of capacityResults) {
       if (result.status === 'fulfilled') capacities[result.value.client.peer.studentId] = result.value.capacity;
@@ -69,7 +71,7 @@ export class CoordinatorAgent {
     const plan = allocateProject({ project, peers: connectedPeers, capacities, bidsByTask, warnings });
     for (const allocation of plan.allocations) log(`${allocation.taskId} → ${allocation.studentId}.`);
     for (const task of plan.unallocatedTasks) log(`${task.taskId} → UNALLOCATED.`);
-    return { plan, events, connectedPeers, bidsByTask };
+    return { plan, events, connectedPeers, bidsByTask, capacities, feasibility: calculateTeamFeasibility(project, capacities) };
   }
 
   approvePlan(plan: ProjectPlan): ProjectPlan { return approvePlan(plan); }

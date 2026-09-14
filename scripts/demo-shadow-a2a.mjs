@@ -7,9 +7,11 @@ const peers = [
   ['student-b', '9102'],
   ['student-c', '9103']
 ];
+const scenario = process.argv[2] ?? 'happy-path';
+const mode = process.argv[3] ?? 'initial';
 const peerEntry = resolve('apps/shadow-cohort-peer/src/cli.ts');
-const coordinatorEntry = resolve('apps/shadow-cohort-coordinator/src/demo.ts');
-const children = peers.map(([id, port]) => spawn(process.execPath, ['--import', 'tsx', peerEntry, id, port], { cwd: process.cwd(), stdio: 'inherit' }));
+const coordinatorEntry = resolve(`apps/shadow-cohort-coordinator/src/${mode === 'replan' ? 'replan-demo' : 'demo'}.ts`);
+const children = peers.map(([id, port]) => spawn(process.execPath, ['--import', 'tsx', peerEntry, id, port, scenario], { cwd: process.cwd(), stdio: 'inherit' }));
 
 async function waitForPeers() {
   const deadline = Date.now() + 15_000;

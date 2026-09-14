@@ -9,8 +9,8 @@ import {
   type Message,
   type ModelStreamEvent
 } from '@strands-agents/sdk';
-import { StudentAgent } from '@shadow-cohort/agent';
 import { handlePeerMessage } from './handlers';
+import type { PeerRuntime } from './runtime';
 
 function latestUserText(messages: Message[]): string {
   const message = [...messages].reverse().find((candidate) => candidate.role === 'user');
@@ -22,13 +22,13 @@ function latestUserText(messages: Message[]): string {
 export class PeerProtocolModel extends Model<BaseModelConfig> {
   private config: BaseModelConfig = { modelId: 'shadow-cohort-deterministic-peer' };
 
-  constructor(private readonly studentAgent: StudentAgent) { super(); }
+  constructor(private readonly runtime: PeerRuntime) { super(); }
 
   updateConfig(modelConfig: BaseModelConfig): void { this.config = { ...this.config, ...modelConfig }; }
   getConfig(): BaseModelConfig { return { ...this.config }; }
 
   async *stream(messages: Message[]): AsyncIterable<ModelStreamEvent> {
-    const response = handlePeerMessage(this.studentAgent, latestUserText(messages));
+    const response = handlePeerMessage(this.runtime, latestUserText(messages));
     yield new ModelMessageStartEvent({ type: 'modelMessageStartEvent', role: 'assistant' });
     yield new ModelContentBlockStartEvent({ type: 'modelContentBlockStartEvent' });
     yield new ModelContentBlockDeltaEvent({ type: 'modelContentBlockDeltaEvent', delta: { type: 'textDelta', text: response } });

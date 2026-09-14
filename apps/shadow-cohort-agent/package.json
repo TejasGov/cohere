@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/agent.ts",
-    "./profile": "./src/profile.ts"
+    "./profile": "./src/profile.ts",
+    "./scenarios": "./src/scenarios.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

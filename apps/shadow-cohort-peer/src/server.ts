@@ -1,14 +1,15 @@
 import { Agent } from '@strands-agents/sdk';
 import { A2AExpressServer } from '@strands-agents/sdk/a2a/express';
 import type { AcademicState } from '@academic/core';
-import { StudentAgent } from '@shadow-cohort/agent';
 import type { PeerDescriptor, StudentProfile } from '@shadow-cohort/core';
 import { peerAgentCard } from './agent-card';
 import { PeerProtocolModel } from './deterministic-model';
+import { PeerRuntime } from './runtime';
 
 export interface PeerServerConfig {
   profile: StudentProfile;
   academicState: AcademicState;
+  overloadAcademicState?: AcademicState;
   now: Date;
   host?: string;
   port: number;
@@ -24,12 +25,13 @@ export async function startPeerServer(config: PeerServerConfig): Promise<Running
   const host = config.host ?? '127.0.0.1';
   const card = peerAgentCard(config.profile);
   const controller = new AbortController();
+  const runtime = new PeerRuntime(config.profile, config.academicState, config.now, config.overloadAcademicState);
   const server = new A2AExpressServer({
     agentFactory: () => new Agent({
       id: `peer-${config.profile.id}`,
       name: card.name,
       description: card.description,
-      model: new PeerProtocolModel(new StudentAgent(config.profile, config.academicState, config.now)),
+      model: new PeerProtocolModel(runtime),
       printer: false
     }),
     name: card.name,

@@ -46,7 +46,7 @@ Human approval or change request
 
 ## Current implementation
 
-### Personal Student Agent
+### Phase 1 — personal workload-aware agents
 
 Each `StudentAgent` owns:
 
@@ -70,7 +70,7 @@ Five local Strands tools are available:
 
 Numeric scores are calculated in `@shadow-cohort/core`. A language model may explain a result, but it cannot choose or alter the numeric bid.
 
-### Real Strands A2A negotiation
+### Phase 2 — real Strands A2A negotiation
 
 The repository uses:
 
@@ -107,6 +107,52 @@ After each assignment, remaining capacity and utilization are updated before the
 
 Plans begin with status `proposed`. They become `approved` only through `approvePlan()`. `requestChanges()` preserves optional human feedback without silently renegotiating.
 
+### Phase 3 — event-driven minimal-diff replanning
+
+The Coordinator now keeps an auditable `ProjectRuntimeState` with task statuses, safe capacity snapshots, plan versions, and plan history. It accepts a validated project-event vocabulary covering academic load, declared availability, student unavailability, estimates, blocked/completed tasks, earlier deadlines, and new tasks.
+
+The main demo follows this path:
+
+```text
+Initial project
+  → real A2A bids from all three private peers
+  → proposed Plan v1
+  → explicit approval
+  → Student C's private sanitized workload changes
+  → capacity recalculated by the existing deterministic model
+  → privacy-safe capacity-change notice
+  → affected unfinished tasks identified
+  → fresh real A2A bids only for those tasks
+  → minimum-disruption Plan v2
+  → human approval required
+```
+
+The numeric replanning objective is deterministic. Completed work is immovable, in-progress work has a high movement penalty, existing ownership is preferred, and the engine searches for the fewest safe assignment changes. It never asks an LLM to select owners or alter scores. If no safe reallocation exists, the result is `needs_team_decision`; work is never forced onto an overloaded teammate.
+
+The Student C demo mutation changes private `AcademicState` input, not a capacity constant. Safe capacity falls from 9.6 hours to 6 hours. The Coordinator receives only the student identifier, old/new safe hours, coarse capacity level, and `academic workload increased`—never the underlying course or assignment.
+
+### Dashboard integration contract
+
+The Coordinator exposes a small local JSON API for a separately built dashboard. Start the three peers in separate terminals, then start the API:
+
+```powershell
+npx pnpm shadow:peer:a
+npx pnpm shadow:peer:b
+npx pnpm shadow:peer:c
+npx pnpm shadow:dashboard-api
+```
+
+The default API is `http://127.0.0.1:9200`. It supports polling and deliberately contains no raw academic state:
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/shadow/status` | Peers, capacities, allocations, feasibility, bids, plan history, changes, and safe event log |
+| `POST` | `/api/shadow/negotiate` | Run initial real A2A negotiation |
+| `POST` | `/api/shadow/plan/approve` | Approve the current initial plan |
+| `POST` | `/api/shadow/demo/student-c-overload` | Mutate Student C's private fixture, recalculate capacity, and run targeted rebidding |
+| `POST` | `/api/shadow/replan/approve` | Approve the proposed revised plan |
+| `POST` | `/api/shadow/replan/reject` | Mark changes requested and preserve optional JSON `feedback` |
+
 ## Demo
 
 Install dependencies:
@@ -122,13 +168,25 @@ Run the Phase 1 deterministic single-agent demo:
 npx pnpm demo:shadow-cohort
 ```
 
-Run the real A2A multi-agent demo:
+Run the happy-path real A2A multi-agent demo:
 
 ```powershell
 npx pnpm demo:shadow-cohort:a2a
 ```
 
-The A2A demo automatically:
+Run the defining dynamic replanning demo:
+
+```powershell
+npx pnpm demo:shadow-cohort:replan
+```
+
+Run the original strict capacity-failure scenario:
+
+```powershell
+npx pnpm demo:shadow-cohort:overloaded
+```
+
+Each A2A demo automatically:
 
 1. starts three independent peer processes;
 2. waits for all agent cards;
@@ -136,8 +194,10 @@ The A2A demo automatically:
 4. broadcasts six fictional Campus Marketplace tasks;
 5. receives 18 real networked bids;
 6. applies capacity and fairness constraints;
-7. prints an A2A event log, proposed plan, fairness summary, and local board;
+7. prints an A2A event log, proposed plan, feasibility/fairness summary, and local board;
 8. shuts down the peer processes.
+
+The replan demo additionally marks its Plan v1 approval as `DEMO AUTO-APPROVAL`, applies the private Student C workload fixture, receives six fresh network bids for Student C's two affected tasks, and proposes Plan v2 with only Presentation moved. Application code never auto-approves Plan v1 or Plan v2.
 
 Peers can also be started separately:
 
@@ -148,13 +208,11 @@ npx pnpm shadow:peer:c
 npx pnpm shadow:coordinator
 ```
 
-### Verified demo behavior
+### Demo scenarios
 
-- Student A → Backend API: skill `0.85`, capacity `0.64`, overall `0.81`, willing.
-- Student B → Frontend UI: skill `0.93`, capacity `1.00`, overall `0.96`, willing.
-- Student C → Recommendation Model: skill `0.93`, capacity `0.42`, overall `0.79`, not willing.
+`happyPathTeamScenario` uses fictional profiles and empty initial academic pressure. The existing deterministic capacity model derives 12 safe hours for Student A, 16 for Student B, and 9.6 for Student C: 37.6 hours against 34 hours of work, classified `tight`. All six tasks receive all three real A2A bids and can be allocated without exceeding any safe capacity.
 
-The current safe plan assigns Frontend UI to Student B. Backend API remains unallocated because Student A has 6 safe hours for an 8-hour task. The recommendation model remains unallocated because Student C has strong ML skills but insufficient current capacity. This is intentional behavior.
+`overloadedTeamScenario` preserves the original fictional academic pressure and strict behavior: roughly 6, 12.8, and 4.2 safe hours respectively. Its insufficient-capacity plan intentionally leaves work unallocated, demonstrating that the allocator refuses impossible plans.
 
 ## Privacy and security
 
@@ -245,7 +303,7 @@ apps/
 
 packages/
   academic-core/               Canonical AcademicState and shared utilities
-  shadow-cohort-core/          Profile, workload, capacity, bid, and plan logic
+  shadow-cohort-core/          Profile, workload, capacity, events, bids, plans, and replanning logic
 
 extension/
   src/adapters/                LMS-specific adapters
@@ -264,6 +322,9 @@ scripts/
 | `npx pnpm dev` | Start the fictional academic portal |
 | `npx pnpm demo:shadow-cohort` | Run one deterministic Student Agent |
 | `npx pnpm demo:shadow-cohort:a2a` | Run three real A2A peers and Coordinator |
+| `npx pnpm demo:shadow-cohort:replan` | Run workload change and minimal-diff real A2A replanning |
+| `npx pnpm demo:shadow-cohort:overloaded` | Run the original insufficient-capacity safety scenario |
+| `npx pnpm shadow:dashboard-api` | Start the local dashboard JSON API after starting all peers |
 | `npx pnpm test` | Run all unit and real localhost integration tests |
 | `npx pnpm lint` | Run ESLint |
 | `npx pnpm typecheck` | Run strict TypeScript checks |
@@ -271,28 +332,18 @@ scripts/
 | `npx pnpm build:extension` | Build the Manifest V3 extension |
 | `npx pnpm build:demo` | Build the fictional demo portal |
 
-## Verified status
+## Verification
 
-```text
-Test files: 21 passed
-Tests:      147 passed
-ESLint:     PASS
-TypeScript: PASS
-Build:      PASS
-A2A peers:  3/3 connected
-A2A bids:   18/18 received
-Plan:       GENERATED — PROPOSED
-Privacy:    PASS
-```
+The test suite covers workload and capacity, all project-event types, replan decisions, affected-task selection, movement penalties, real network rebidding, offline/timeout behavior, malformed outbound bids, exhausted capacity, version history, human decisions, dashboard endpoints, and privacy-safe serialization. The exact current counts and demo results are reported after running the commands rather than being maintained as stale prose here.
 
 ## Intentionally not implemented
 
-- dynamic replanning;
-- deadline-change events;
 - Jira integration;
 - calendar integration;
 - additional LMS crawling;
 - automatic approval;
-- Phase 3 behavior.
+- final dashboard UI;
+- AgentCore or cloud deployment;
+- sophisticated deadline scheduling beyond deterministic feasibility-review plumbing.
 
-The next phase should begin only after explicit approval. The current milestone ends with three independently addressable Student Agents negotiating over real A2A and producing a fair, privacy-safe proposed project plan for human review.
+The current milestone ends with three independently addressable private Student Agents producing a fair initial plan, reacting to a real workload-derived capacity change, obtaining fresh targeted A2A bids, and proposing the minimum necessary ownership change for human review.

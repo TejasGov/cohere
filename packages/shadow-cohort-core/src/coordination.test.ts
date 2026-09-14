@@ -50,8 +50,10 @@ describe('coordination schemas', () => {
     expect(validateProjectPlan(plan)).toEqual([]);
     expect(validateProjectPlan({ ...plan, status: 'complete' })).toContain('status is invalid.');
   });
-  it('rejects extra outbound bid fields', () => {
+  it('rejects malformed or privacy-expanded outbound bids', () => {
     expect(validatePeerTaskBidResponse({ ...bid('a', 'one', 0.9).bid, courseName: 'private' })).toBe(false);
+    expect(validatePeerTaskBidResponse({ ...bid('a', 'one', 0.9).bid, overallFit: 2 })).toBe(false);
+    expect(validatePeerTaskBidResponse({ ...bid('a', 'one', 0.9).bid, willing: 'yes' })).toBe(false);
   });
   it('whitelists outbound bid fields and strips attached academic state', () => {
     const unsafe = Object.assign({ ...bid('a', 'one', 0.9).bid } as TaskBid, { academicState: { courses: ['Private Course'] }, sourceUrl: 'https://lms.invalid' });
@@ -103,6 +105,6 @@ describe('human approval', () => {
   const plan: ProjectPlan = {
     id: 'p', projectId: 'project', version: 1, status: 'proposed', allocations: [], unallocatedTasks: [], warnings: [], fairnessSummary: {}, createdAt: '2026-09-06T00:00:00.000Z'
   };
-  it('approves explicitly', () => expect(approvePlan(plan)).toMatchObject({ status: 'approved', version: 2 }));
-  it('preserves requested-change feedback', () => expect(requestPlanChanges(plan, 'Student B does not want presentation work.')).toMatchObject({ status: 'changes_requested', version: 2, feedback: 'Student B does not want presentation work.' }));
+  it('approves explicitly without changing the allocation version', () => expect(approvePlan(plan)).toMatchObject({ status: 'approved', version: 1 }));
+  it('preserves requested-change feedback without changing the allocation version', () => expect(requestPlanChanges(plan, 'Student B does not want presentation work.')).toMatchObject({ status: 'changes_requested', version: 1, feedback: 'Student B does not want presentation work.' }));
 });

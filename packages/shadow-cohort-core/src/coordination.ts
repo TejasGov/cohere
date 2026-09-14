@@ -145,11 +145,11 @@ export function validateProjectPlan(value: unknown): string[] {
 }
 
 export function approvePlan(plan: ProjectPlan): ProjectPlan {
-  return { ...plan, status: 'approved', version: plan.version + 1 };
+  return { ...plan, status: 'approved' };
 }
 
 export function requestChanges(plan: ProjectPlan, feedback?: string): ProjectPlan {
-  return { ...plan, status: 'changes_requested', version: plan.version + 1, ...(feedback ? { feedback } : {}) };
+  return { ...plan, status: 'changes_requested', ...(feedback ? { feedback } : {}) };
 }
 
 export const requestPlanChanges = requestChanges;
