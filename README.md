@@ -1,5 +1,7 @@
 <div align="center">
 
+
+
   <img src="https://cohere-six-nu.vercel.app/cohere-logo-full.png" alt="Cohere Logo" width="380" />
 
   <h3>Group work that adapts <em>before</em> someone burns out.</h3>
@@ -185,6 +187,11 @@ npx pnpm build
 
 ---
 
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+Copyright © 2026 Atshal Ahmed Khan & Tejas Govind.
 <div align="center">
   <sub>Built for student teams. Powered by Strands Agent-to-Agent Protocol.</sub>
 </div>
