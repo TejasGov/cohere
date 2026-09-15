@@ -1,336 +1,190 @@
-# Cohere
+<div align="center">
 
-> Privacy-first, workload-aware multi-agent coordination for student group projects.
+  <img src="https://cohere-six-nu.vercel.app/cohere-logo-full.png" alt="Cohere Logo" width="380" />
 
-Cohere gives every teammate a personal agent that understands their normalized academic workload, explicitly declared skills, availability, and task preferences. The agents exchange privacy-safe task bids over the Strands Agent-to-Agent protocol. A separate Coordinator collects every bid, enforces hard capacity and fairness rules, and generates a proposed project plan for human approval.
+  <h3>Group work that adapts <em>before</em> someone burns out.</h3>
 
-The project evolved from **Academic Autopilot / Academic Bridge**, the existing Chrome extension and WebMCP compatibility layer in this repository. That infrastructure converts different LMS websites into one canonical `AcademicState`. Cohere uses the normalized state as local input without exposing private academic records to teammates or the Coordinator.
+  <p>
+    <strong>Privacy-first, workload-aware multi-agent coordination protocol for student group projects.</strong>
+  </p>
 
-## The problem
+  <p>
+    <a href="https://cohere-six-nu.vercel.app"><img src="https://img.shields.io/badge/🚀%20Live%20Demo-cohere--six--nu.vercel.app-7c3aed?style=for-the-badge&logo=vercel" alt="Live Demo" /></a>
+    <a href="https://github.com/atshalahmedkhan/Hackathon_UD"><img src="https://img.shields.io/badge/Protocol-Strands%20A2A-a995ff?style=for-the-badge" alt="Strands A2A Protocol" /></a>
+    <a href="https://github.com/atshalahmedkhan/Hackathon_UD"><img src="https://img.shields.io/badge/Privacy-100%25%20Zero--Knowledge-10b981?style=for-the-badge" alt="Zero Knowledge Privacy" /></a>
+  </p>
 
-Group-project plans are often based on incomplete information. One teammate may have the right technical skills but also have several exams and deadlines that week. Static plans can therefore overload the wrong person and become obsolete quickly.
+  <p>
+    <a href="#-key-features">Key Features</a> •
+    <a href="#-architecture">Architecture</a> •
+    <a href="#-live-demo--dashboard">Live Demo</a> •
+    <a href="#-quickstart">Quickstart</a> •
+    <a href="#-how-it-works">How It Works</a> •
+    <a href="#-privacy-boundary">Privacy Guarantee</a>
+  </p>
 
-Cohere separates three questions:
+  ---
 
-1. Does the student have the explicitly declared skills for this task?
-2. Does the student currently have enough safe project capacity?
-3. Can the team create a fair allocation without exposing private academic details?
+</div>
 
-A strong skill match does not override insufficient capacity.
+## 💡 The Problem
 
-## How it works
+Group project allocations are usually static and blind to reality. A teammate might possess ideal technical skills for a task, but face three exams and two paper deadlines that week. Traditional assignment methods either:
+1. **Overload overloaded teammates**, leading to missed deadlines and burnout.
+2. **Force students to reveal private academic records** (grades, course lists, assignments) just to request help.
 
-```text
-Legacy LMS / university portal
-              ↓
-Existing platform adapters and document analysis
-              ↓
-Canonical AcademicState (private and local)
-              ↓
-Deterministic workload + capacity calculation
-              ↓
-Personal Student Agent
-              ↓ privacy-safe A2A bid
-┌──────────────────────────────────────────────┐
-│ Student A peer                               │
-│ Student B peer ── Strands A2A ─→ Coordinator│
-│ Student C peer                               │
-└──────────────────────────────────────────────┘
-              ↓
-Deterministic capacity and fairness allocation
-              ↓
-PROPOSED project plan
-              ↓
-Human approval or change request
-```
+## 🛡️ The Cohere Solution
 
-## Current implementation
+**Cohere** introduces workload-aware personal AI agents for every student. Rather than sharing raw schedules or grades, each student's agent locally evaluates academic pressure, calculates safe project capacity, and negotiates task ownership over the **Strands Agent-to-Agent (A2A)** protocol.
 
-### Phase 1 — personal workload-aware agents
+> **Key Rule**: A strong skill match *never* overrides insufficient safe project capacity.
 
-Each `StudentAgent` owns:
+---
 
-- one sanitized or locally hydrated `AcademicState`;
-- skills explicitly entered by the student;
-- explicitly declared weekly availability;
-- preferred and avoided task types;
-- deterministic workload, capacity, and task-fit calculations.
+## ✨ Key Features
 
-The agent never infers technical skill from grades, course names, assignments, or private academic performance.
+- **🔒 Zero-Knowledge Academic Privacy**: Personal Student Agents run locally, deriving safe weekly project capacity without exposing grades, assignment names, or course lists to teammates or central servers.
+- **🤝 Strands A2A Protocol Negotiation**: 3 independently addressable peer servers exchange deterministic task bids over JSON-RPC agent-to-agent protocol using `@strands-agents/sdk`.
+- **🔄 Event-Driven Minimal-Diff Replanning**: When a student's academic workload surges, Cohere isolates affected tasks, re-bids *only* those items, and minimizes assignment churn.
+- **⚖️ Inspectable Fairness Engine**: Allocation score combines skill fit, current utilization penalties, and headroom bonuses (`overallFit × 100 − utilizationPenalty + headroomBonus`).
+- **🎨 Interactive WebGL Landing & Live Dashboard**: Modern landing page featuring cursor-tracking ghost orb, GPU ordered dithering shaders, animated data pipes, and real-time dashboard API.
 
-Five local Strands tools are available:
+---
 
-| Tool | Purpose |
-| --- | --- |
-| `get_student_profile` | Read declared skills, availability, and preferences |
-| `get_workload_summary` | Read deterministic workload pressure |
-| `get_student_capacity` | Read safe project capacity |
-| `evaluate_task` | Produce a deterministic `TaskBid` |
-| `list_upcoming_academic_pressure` | Read normalized near-term pressure locally |
-
-Numeric scores are calculated in `@shadow-cohort/core`. A language model may explain a result, but it cannot choose or alter the numeric bid.
-
-### Phase 2 — real Strands A2A negotiation
-
-The repository uses:
-
-- `@strands-agents/sdk` 1.16.0;
-- `A2AExpressServer` for independently addressable peer servers;
-- `A2AAgent` for remote Coordinator-to-peer communication;
-- official agent cards at `/.well-known/agent-card.json`;
-- A2A JSON-RPC requests over localhost HTTP;
-- a separate context-isolated Strands agent for each A2A conversation.
-
-Default development peers:
-
-| Peer | Endpoint |
-| --- | --- |
-| Student A | `http://127.0.0.1:9101` |
-| Student B | `http://127.0.0.1:9102` |
-| Student C | `http://127.0.0.1:9103` |
-
-Every project task is sent to every available peer. The Coordinator waits for the complete bid round before allocating tasks. Offline, timed-out, malformed, or duplicate responses are isolated so partial planning can continue.
-
-### Deterministic allocation
-
-Only willing bids that fit within a student's remaining safe capacity are feasible.
-
-The inspectable allocation score is:
+## 🏗️ Architecture
 
 ```text
-overallFit × 100
-− current-utilization fairness penalty (up to 20 points)
-+ remaining-capacity headroom bonus (up to 4 points)
+┌──────────────────────────────────────────────────────────────────┐
+│              Legacy LMS (Brightspace / Blackboard / UB Learns)   │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │ Manifest V3 Extension & WebMCP
+                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│             Canonical AcademicState (Private & Local)            │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │ Workload & Safe Capacity Engine
+                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                 Personal Student Agents (Local)                  │
+└───────┬────────────────────────┬────────────────────────┬────────┘
+        │ Student A              │ Student B              │ Student C
+        ▼ (A2A Bid)              ▼ (A2A Bid)              ▼ (A2A Bid)
+┌──────────────────────────────────────────────────────────────────┐
+│              Coordinator Engine (Strands A2A Client)             │
+│   • Hard Capacity Checks   • Fairness Penalty   • Rebid Engine   │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │ Proposed Plan
+                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Human Approval / Dashboard                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-After each assignment, remaining capacity and utilization are updated before the next task. If no willing student can safely accept a task, it remains `UNALLOCATED`. The Coordinator never forces an unsafe assignment just to fill the board.
+---
 
-Plans begin with status `proposed`. They become `approved` only through `approvePlan()`. `requestChanges()` preserves optional human feedback without silently renegotiating.
+## 🚀 Live Demo & Dashboard
 
-### Phase 3 — event-driven minimal-diff replanning
+Visit the deployed production web app: **[https://cohere-six-nu.vercel.app](https://cohere-six-nu.vercel.app)**
 
-The Coordinator now keeps an auditable `ProjectRuntimeState` with task statuses, safe capacity snapshots, plan versions, and plan history. It accepts a validated project-event vocabulary covering academic load, declared availability, student unavailability, estimates, blocked/completed tasks, earlier deadlines, and new tasks.
+### Live Web Features:
+- **Interactive Ghost Orb**: WebGL white clay blob with dynamic cursor-tracking eye gaze physics.
+- **Ordered Dithering Shaders**: Alternating Bento grid cards powered by custom WebGL Bayer ordered-dithering fragment shaders.
+- **Animated Data Pipelines**: Modern glowing energy shimmer flowing through architecture connection pipes.
+- **Live Coordinator Dashboard**: Monitor peer statuses, safe hour allocations, fairness scores, and trigger real-time workload overload replanning scenarios.
 
-The main demo follows this path:
+---
 
-```text
-Initial project
-  → real A2A bids from all three private peers
-  → proposed Plan v1
-  → explicit approval
-  → Student C's private sanitized workload changes
-  → capacity recalculated by the existing deterministic model
-  → privacy-safe capacity-change notice
-  → affected unfinished tasks identified
-  → fresh real A2A bids only for those tasks
-  → minimum-disruption Plan v2
-  → human approval required
-```
+## ⚡ Quickstart
 
-The numeric replanning objective is deterministic. Completed work is immovable, in-progress work has a high movement penalty, existing ownership is preferred, and the engine searches for the fewest safe assignment changes. It never asks an LLM to select owners or alter scores. If no safe reallocation exists, the result is `needs_team_decision`; work is never forced onto an overloaded teammate.
+### Prerequisites
+- Node.js >= 18.0.0
+- pnpm >= 9.0.0
 
-The Student C demo mutation changes private `AcademicState` input, not a capacity constant. Safe capacity falls from 9.6 hours to 6 hours. The Coordinator receives only the student identifier, old/new safe hours, coarse capacity level, and `academic workload increased`—never the underlying course or assignment.
+```bash
+# Clone the repository
+git clone https://github.com/atshalahmedkhan/Hackathon_UD.git
+cd Hackathon_UD
 
-### Dashboard integration contract
-
-The Coordinator exposes a small local JSON API for a separately built dashboard. Start the three peers in separate terminals, then start the API:
-
-```powershell
-npx pnpm shadow:peer:a
-npx pnpm shadow:peer:b
-npx pnpm shadow:peer:c
-npx pnpm shadow:dashboard-api
-```
-
-The default API is `http://127.0.0.1:9200`. It supports polling and deliberately contains no raw academic state:
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/shadow/status` | Peers, capacities, allocations, feasibility, bids, plan history, changes, and safe event log |
-| `POST` | `/api/shadow/negotiate` | Run initial real A2A negotiation |
-| `POST` | `/api/shadow/plan/approve` | Approve the current initial plan |
-| `POST` | `/api/shadow/demo/student-c-overload` | Mutate Student C's private fixture, recalculate capacity, and run targeted rebidding |
-| `POST` | `/api/shadow/replan/approve` | Approve the proposed revised plan |
-| `POST` | `/api/shadow/replan/reject` | Mark changes requested and preserve optional JSON `feedback` |
-
-## Demo
-
-Install dependencies:
-
-```powershell
+# Install dependencies
 npx pnpm install
 ```
 
-Run the Phase 1 deterministic single-agent demo:
-
-```powershell
-npx pnpm demo:shadow-cohort
+### 1. Run Demo Web Portal locally
+```bash
+npx pnpm dev
 ```
+Navigate to `http://localhost:5173`.
 
-Run the happy-path real A2A multi-agent demo:
-
-```powershell
+### 2. Run Real Strands A2A Multi-Agent Negotiation
+Starts 3 independent peer agent servers (`http://127.0.0.1:9101-9103`) and runs a full network negotiation:
+```bash
 npx pnpm demo:shadow-cohort:a2a
 ```
 
-Run the defining dynamic replanning demo:
-
-```powershell
+### 3. Run Dynamic Workload Surge & Replanning Simulation
+Simulates Student C's workload increase, triggers targeted rebidding over A2A, and generates Plan v2 with minimal task movement:
+```bash
 npx pnpm demo:shadow-cohort:replan
 ```
 
-Run the original strict capacity-failure scenario:
-
-```powershell
-npx pnpm demo:shadow-cohort:overloaded
-```
-
-Each A2A demo automatically:
-
-1. starts three independent peer processes;
-2. waits for all agent cards;
-3. starts the Coordinator;
-4. broadcasts six fictional Campus Marketplace tasks;
-5. receives 18 real networked bids;
-6. applies capacity and fairness constraints;
-7. prints an A2A event log, proposed plan, feasibility/fairness summary, and local board;
-8. shuts down the peer processes.
-
-The replan demo additionally marks its Plan v1 approval as `DEMO AUTO-APPROVAL`, applies the private Student C workload fixture, receives six fresh network bids for Student C's two affected tasks, and proposes Plan v2 with only Presentation moved. Application code never auto-approves Plan v1 or Plan v2.
-
-Peers can also be started separately:
-
-```powershell
+### 4. Run Local Dashboard API
+```bash
+# Terminal 1, 2, 3: Start peers
 npx pnpm shadow:peer:a
 npx pnpm shadow:peer:b
 npx pnpm shadow:peer:c
-npx pnpm shadow:coordinator
+
+# Terminal 4: Start Dashboard JSON API (http://127.0.0.1:9200)
+npx pnpm shadow:dashboard-api
 ```
 
-### Demo scenarios
+---
 
-`happyPathTeamScenario` uses fictional profiles and empty initial academic pressure. The existing deterministic capacity model derives 12 safe hours for Student A, 16 for Student B, and 9.6 for Student C: 37.6 hours against 34 hours of work, classified `tight`. All six tasks receive all three real A2A bids and can be allocated without exceeding any safe capacity.
+## 🛡️ Privacy Guarantee
 
-`overloadedTeamScenario` preserves the original fictional academic pressure and strict behavior: roughly 6, 12.8, and 4.2 safe hours respectively. Its insufficient-capacity plan intentionally leaves work unallocated, demonstrating that the allocator refuses impossible plans.
+A peer agent may **only** share:
+- Student ID / pseudonym
+- Explicitly declared strong skills & preferences
+- Coarse capacity & safe available project hours
+- Validated `TaskBid` scores
 
-## Privacy and security
+A peer agent **never** exposes:
+- Raw `AcademicState`
+- Course titles, assignment details, or exam dates
+- Grades or GPA
+- LMS tokens, cookies, or credentials
 
-A peer may share only:
+---
 
-- student ID and optional pseudonym;
-- explicitly declared strong skills;
-- coarse capacity and available project hours;
-- high-level constraints;
-- validated `TaskBid` fields.
+## 🛠️ Tech Stack & Monorepo Structure
 
-A peer must not share:
-
-- raw `AcademicState`;
-- course, assignment, or exam names;
-- grades or raw schedules;
-- LMS URLs, HTML, or PDF text;
-- student messages;
-- cookies, tokens, passwords, or authentication data.
-
-Outbound responses are constructed from explicit allowlists and runtime-validated. The Coordinator has no dependency on, import of, or access to another student's academic state. A2A exposes only `get_peer_capacity_summary` and `evaluate_project_task`; arbitrary remote tool execution is not supported.
-
-## Academic Bridge foundation
-
-The preserved Chrome extension supports:
-
-- Manifest V3;
-- independent Brightspace, Blackboard, and university-portal adapters;
-- real UB Learns / Brightspace page detection;
-- canonical courses, assignments, exams, announcements, and class meetings;
-- bounded content/module and targeted-document discovery;
-- local PDF text extraction for selected academic documents;
-- provenance and conflict detection;
-- current-course/manual hydration;
-- seven read-only WebMCP tools;
-- developer diagnostics and normalized JSON inspection.
-
-The automatic UB homepage course-card discovery remains sensitive to Brightspace's dynamically rendered shadow DOM. Cohere does not depend on that path: students can hydrate state by visiting supported individual course pages.
-
-### WebMCP tools
-
-| Tool | Purpose |
+| Package / App | Purpose |
 | --- | --- |
-| `academic_get_overview` | Canonical academic counts and semester status |
-| `academic_get_courses` | Normalized courses |
-| `academic_get_upcoming` | Chronological assignments and exams |
-| `academic_get_announcements` | Normalized announcements |
-| `academic_get_policies` | Policies and office hours with provenance |
-| `academic_get_conflicts` | Conflicting trusted observations |
-| `academic_get_sources` | Source explanation for canonical facts |
+| `apps/demo-portal` | Production Vite / Vanilla TS landing page & live coordinator dashboard |
+| `apps/shadow-cohort-agent` | Personal `StudentAgent`, deterministic tools & workload fixtures |
+| `apps/shadow-cohort-peer` | Strands A2A Express server (`/.well-known/agent-card.json`) |
+| `apps/shadow-cohort-coordinator` | Coordinator client, allocation engine & local JSON API |
+| `packages/shadow-cohort-core` | Shared capacity, fairness, task bidding & replanning logic |
+| `packages/academic-core` | Canonical `AcademicState` types & normalization adapters |
+| `extension/` | Manifest V3 Chrome Extension with 7 read-only WebMCP tools |
 
-All extraction and WebMCP behavior remains local. The extension does not request LMS credentials, transmit page contents to a backend, or load unsafe remote scripts.
+---
 
-## Demo portal and Chrome extension
+## 🧪 Verification & Quality
 
-Start the fictional portal:
+```bash
+# Run unit & localhost integration tests
+npx pnpm test
 
-```powershell
-npx pnpm dev
+# Run strict TypeScript checks
+npx pnpm typecheck
+
+# Build all packages & apps
+npx pnpm build
 ```
 
-Routes:
+---
 
-- `http://127.0.0.1:5173/brightspace`
-- `http://127.0.0.1:5173/blackboard`
-- `http://127.0.0.1:5173/portal`
-
-Build and load the extension:
-
-```powershell
-npx pnpm build:extension
-```
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Select **Load unpacked**.
-4. Choose `extension/dist` from this repository.
-5. Refresh supported pages that were already open.
-
-## Repository structure
-
-```text
-apps/
-  demo-portal/                 Fictional legacy academic sites and Cohere landing page / live dashboard
-  shadow-cohort-agent/         Personal StudentAgent, tools, fixtures, demo
-  shadow-cohort-peer/          Strands A2A server, agent card, safe handlers
-  shadow-cohort-coordinator/   A2A client, coordinator, allocator demo, board
-
-packages/
-  academic-core/               Canonical AcademicState and shared utilities
-  shadow-cohort-core/          Profile, workload, capacity, events, bids, plans, and replanning logic
-
-extension/
-  src/adapters/                LMS-specific adapters
-  src/documents/               Classification, extraction, facts, provenance
-  src/semester/                Bounded discovery and state collection
-  src/webmcp/                  Read-only WebMCP interface
-
-scripts/
-  demo-shadow-a2a.mjs          Reproducible three-peer A2A demo runner
-```
-
-## Commands
-
-| Command | Purpose |
-| --- | --- |
-| `npx pnpm dev` | Start the fictional academic portal |
-| `npx pnpm demo:shadow-cohort` | Run one deterministic Student Agent |
-| `npx pnpm demo:shadow-cohort:a2a` | Run three real A2A peers and Coordinator |
-| `npx pnpm demo:shadow-cohort:replan` | Run workload change and minimal-diff real A2A replanning |
-| `npx pnpm demo:shadow-cohort:overloaded` | Run the original insufficient-capacity safety scenario |
-| `npx pnpm shadow:dashboard-api` | Start the local dashboard JSON API after starting all peers |
-| `npx pnpm test` | Run all unit and real localhost integration tests |
-| `npx pnpm lint` | Run ESLint |
-| `npx pnpm typecheck` | Run strict TypeScript checks |
-| `npx pnpm build` | Build every workspace package and the extension |
-| `npx pnpm build:extension` | Build the Manifest V3 extension |
-| `npx pnpm build:demo` | Build the fictional demo portal |
-
-## Verification
-
-The test suite covers workload and capacity, all project-event types, replan decisions, affected-task selection, movement penalties, real network rebidding, offline/timeout behavior, malformed outbound bids, exhausted capacity, version history, human decisions, dashboard endpoints, and privacy-safe serialization. The exact current counts and demo results are reported after running the commands rather than being maintained as stale prose here.
+<div align="center">
+  <sub>Built for student teams. Powered by Strands Agent-to-Agent Protocol.</sub>
+</div>
