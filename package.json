@@ -11,6 +11,8 @@
     "shadow:peer:c": "pnpm --filter @shadow-cohort/peer peer:c",
     "shadow:coordinator": "pnpm --filter @shadow-cohort/coordinator demo",
     "shadow:dashboard-api": "pnpm --filter @shadow-cohort/coordinator api",
+    "shadow:server": "pnpm --filter @shadow-cohort/server start",
+    "demo:shadow-cohort:web": "tsx scripts/demo-shadow-web.ts",
     "demo:shadow-cohort:a2a": "node scripts/demo-shadow-a2a.mjs",
     "demo:shadow-cohort:overloaded": "node scripts/demo-shadow-a2a.mjs overloaded initial",
     "demo:shadow-cohort:replan": "node scripts/demo-shadow-a2a.mjs happy-path replan",
@@ -19,7 +21,7 @@
     "build:extension": "pnpm --filter @academic/extension build",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p scripts/tsconfig.json"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

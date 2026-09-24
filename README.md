@@ -111,11 +111,38 @@ cd Hackathon_UD
 npx pnpm install
 ```
 
-### 1. Run Demo Web Portal locally
+### 1. Run the complete local website and backend
+
+Start the three real Strands A2A peers, Coordinator API, and Vite dashboard together:
+
+```bash
+npx pnpm demo:shadow-cohort:web
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5173/dashboard
+```
+
+The runner starts Student A, Student B, and Student C in order; verifies all three agent cards; starts and verifies the Coordinator at `http://127.0.0.1:9200`; then starts the dashboard with `VITE_SHADOW_API_BASE=http://127.0.0.1:9200`. Press `Ctrl+C` once to stop the dashboard, Coordinator, and all peer servers.
+
+The dashboard checks `/health` and polls every two seconds. When the API is unavailable it retains the Coordinator-offline screen, displays the configured safe API URL and last connection error, and offers Retry Connection. It automatically returns to the live dashboard when the API becomes healthy.
+
+The committed local configuration example is [apps/demo-portal/.env.example](apps/demo-portal/.env.example). No secret is required.
+
+To run only the landing/demo portal:
+
 ```bash
 npx pnpm dev
 ```
 Navigate to `http://localhost:5173`.
+
+To run the Phase 1 deterministic single-agent demo:
+
+```bash
+npx pnpm demo:shadow-cohort
+```
 
 ### 2. Run Real Strands A2A Multi-Agent Negotiation
 Starts 3 independent peer agent servers (`http://127.0.0.1:9101-9103`) and runs a full network negotiation:

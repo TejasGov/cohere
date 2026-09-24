@@ -102,6 +102,15 @@ describe.sequential('workload-driven replanning over real localhost A2A', () => 
     const serialized = JSON.stringify(status);
     for (const forbidden of ['private-pressure-item', 'private-course', 'sourceUrl', '2026-09-10T20:00:00.000Z']) expect(serialized).not.toContain(forbidden);
     expect(runtime.approveReplan().plan).toMatchObject({ version: 2, status: 'approved' });
+    await expect(runtime.simulateStudentCOverload()).rejects.toThrow('Reset the demo');
+    const reset = await runtime.resetDemo();
+    expect(reset.currentPlan).toBeUndefined();
+    expect(reset.eventLog.at(-1)?.message).toContain('Demo reset');
+    const replay = await runtime.negotiate();
+    expect(replay.capacities['student-c']?.availableProjectHours).toBe(9.6);
+    expect(replay.plan.allocations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ taskId: 'presentation', studentId: 'student-c' })
+    ]));
   });
 
   it('escalates instead of forcing an unsafe reallocation', async () => {
@@ -192,14 +201,23 @@ describe('privacy-safe dashboard API', () => {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ feedback: 'Discuss this change together.' })
       });
       expect(reject.status).toBe(200);
+      expect(await reject.clone().json()).toMatchObject({ plan: { version: 2, status: 'changes_requested' } });
       const approveReplan = await fetch(`${api.endpoint}/api/shadow/replan/approve`, { method: 'POST' });
       expect(approveReplan.status).toBe(200);
+      const completedStatus = await fetch(`${api.endpoint}/api/shadow/status`);
+      const completedBody = await completedStatus.text();
+      expect(completedBody).toContain('changes_requested');
+      expect(completedBody).toContain('approved');
+      expect(completedBody).toContain('academic workload increased');
+      const reset = await fetch(`${api.endpoint}/api/shadow/demo/reset`, { method: 'POST' });
+      expect(reset.status).toBe(200);
+      expect(await reset.clone().json()).not.toHaveProperty('currentPlan');
+      const replay = await fetch(`${api.endpoint}/api/shadow/negotiate`, { method: 'POST' });
+      expect(replay.status).toBe(200);
+      expect(await replay.clone().json()).toMatchObject({ capacities: { 'student-c': { availableProjectHours: 9.6 } } });
       const statusResponse = await fetch(`${api.endpoint}/api/shadow/status`);
       expect(statusResponse.status).toBe(200);
       const body = await statusResponse.text();
-      expect(body).toContain('changes_requested');
-      expect(body).toContain('approved');
-      expect(body).toContain('academic workload increased');
       for (const forbidden of ['private-pressure-item', 'private-course', 'sourceUrl', '2026-09-10T20:00:00.000Z']) expect(body).not.toContain(forbidden);
     } finally {
       await api.stop();

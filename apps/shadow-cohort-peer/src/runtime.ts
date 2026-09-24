@@ -5,8 +5,10 @@ import { validateCapacityChangeNotice, type CapacityChangeNotice, type StudentPr
 /** Private mutable state owned by one peer process. No AcademicState leaves this boundary. */
 export class PeerRuntime {
   private academicState: AcademicState;
+  private readonly initialAcademicState: AcademicState;
 
   constructor(readonly profile: StudentProfile, initialState: AcademicState, private readonly now: Date, private readonly overloadState?: AcademicState) {
+    this.initialAcademicState = initialState;
     this.academicState = initialState;
   }
 
@@ -26,5 +28,10 @@ export class PeerRuntime {
     };
     if (!validateCapacityChangeNotice(notice)) throw new Error('Refusing to emit an unsafe capacity-change notice.');
     return notice;
+  }
+
+  /** Restores only this peer's sanitized demo fixture; no private academic data is returned. */
+  resetDemo(): void {
+    this.academicState = this.initialAcademicState;
   }
 }

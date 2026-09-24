@@ -1,0 +1,22 @@
+{
+  "name": "@shadow-cohort/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shadow-cohort/agent": "workspace:*",
+    "@shadow-cohort/coordinator": "workspace:*",
+    "@shadow-cohort/peer": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}

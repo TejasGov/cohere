@@ -1,5 +1,6 @@
 import './styles.css';
 import { initialState, updateDemoState, type DemoEvent, type DemoState } from './state';
+import { publicApiLabel, shadowApiRequest } from './shadow-api';
 
 type LegacyPage = 'brightspace' | 'blackboard' | 'portal';
 
@@ -20,7 +21,10 @@ type DashboardStatus = {
   };
   feasibility: {
     classification?: string;
+    status?: string;
     totalEstimatedProjectHours?: number;
+    totalSafeTeamHours?: number;
+    capacityMargin?: number;
     totalSafeCapacityHours?: number;
     capacityBufferHours?: number;
     [key: string]: unknown;
@@ -35,6 +39,7 @@ type DashboardStatus = {
       studentName?: string;
       estimatedHours: number;
       score?: number;
+      allocationScore?: number;
       [key: string]: unknown;
     }>;
     [key: string]: unknown;
@@ -56,6 +61,10 @@ type DashboardStatus = {
     [key: string]: unknown;
   };
   taskBids: Record<string, Array<{
+    bid?: {
+      willing?: boolean;
+      overallFit?: number;
+    };
     studentId?: string;
     willing?: boolean;
     overallFit?: number;
@@ -75,7 +84,7 @@ const app = document.querySelector<HTMLDivElement>('#app') ?? (() => {
 
 let state: DemoState = { ...initialState };
 let dashboardTimer: number | undefined;
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:9200';
+let lastConnectionError = 'No connection attempt has completed yet.';
 
 const escapeHtml = (value: unknown): string =>
   String(value ?? '')
@@ -378,19 +387,21 @@ const dashboardShell = () => `
         <div class="dashboard-loading">
           <div class="loading-orb"></div>
           <h2>Connecting to coordinator...</h2>
-          <p>Start <code>pnpm shadow:dashboard-api</code> on port 9200.</p>
+          <p>Connecting to <code>${escapeHtml(publicApiLabel())}</code>.</p>
         </div>
       </div>
     </section>
   </main>`;
 
-const dashboardOffline = () => `
+const dashboardOffline = (error: string) => `
   <div class="offline-card">
     <div class="offline-icon">${icon('pulse')}</div>
     <span class="section-kicker">COORDINATOR OFFLINE</span>
-    <h2>The interface is ready. The local API is not.</h2>
-    <p>Run the three peer agents and dashboard API, then refresh this page.</p>
-    <code>pnpm shadow:peer:a<br>pnpm shadow:peer:b<br>pnpm shadow:peer:c<br>pnpm shadow:dashboard-api</code>
+    <h2>The interface is ready. The Coordinator API is unavailable.</h2>
+    <p><strong>API URL:</strong> <code>${escapeHtml(publicApiLabel())}</code></p>
+    <p><strong>Last connection error:</strong> ${escapeHtml(error)}</p>
+    <p>For local development, start everything with:</p>
+    <code>pnpm shadow:server</code>
     <button class="button button-dark" id="retry-button">${icon('refresh')} Retry connection</button>
   </div>`;
 
@@ -400,7 +411,7 @@ const renderDashboardStatus = (data: DashboardStatus): string => {
   const totalCapacity = data.peers.reduce((sum, peer) => sum + (peer.availableHours || 0), 0);
   const totalAllocated = data.peers.reduce((sum, peer) => sum + (peer.allocatedHours || 0), 0);
   const connected = data.peers.filter((peer) => peer.connected).length;
-  const feasibility = String(data.feasibility?.classification ?? 'unknown').toLowerCase();
+  const feasibility = String(data.feasibility?.status ?? data.feasibility?.classification ?? 'unknown').toLowerCase();
 
   const peerCards = data.peers.map((peer, index) => {
     const pct = capacityPercent(peer.allocatedHours, peer.availableHours);
@@ -425,11 +436,11 @@ const renderDashboardStatus = (data: DashboardStatus): string => {
         <td><span class="task-bullet"></span><strong>${escapeHtml(allocation.taskTitle ?? allocation.taskId)}</strong></td>
         <td>${escapeHtml(peer?.displayName ?? allocation.studentName ?? allocation.studentId)}</td>
         <td>${formatHours(allocation.estimatedHours)}</td>
-        <td><span class="fit-badge">${allocation.score != null ? Number(allocation.score).toFixed(1) : 'safe'}</span></td>
+        <td><span class="fit-badge">${allocation.allocationScore != null ? Number(allocation.allocationScore).toFixed(1) : allocation.score != null ? Number(allocation.score).toFixed(1) : 'safe'}</span></td>
       </tr>`;
   }).join('') : `<tr><td colspan="4" class="empty-cell">No allocation yet. Run negotiation to create Plan v1.</td></tr>`;
 
-  const events = data.eventLog.slice(-8).reverse().map((event) => `
+  const events = data.eventLog.slice(-16).reverse().map((event) => `
     <li>
       <i></i>
       <div><strong>${escapeHtml(event.message)}</strong><small>${new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></div>
@@ -450,7 +461,7 @@ const renderDashboardStatus = (data: DashboardStatus): string => {
   } else if (approved && !data.currentReplan) {
     primaryAction = `<button class="button button-primary" data-api-action="/api/shadow/demo/student-c-overload">Simulate workload change ${icon('pulse')}</button>`;
   } else {
-    primaryAction = `<button class="button button-dark" data-api-action="/api/shadow/negotiate">Renegotiate ${icon('refresh')}</button>`;
+    primaryAction = `<button class="button button-dark" data-api-action="/api/shadow/demo/reset">Reset demo ${icon('refresh')}</button>`;
   }
 
   return `
@@ -529,7 +540,7 @@ const renderDashboardStatus = (data: DashboardStatus): string => {
           ${Object.entries(data.taskBids).slice(0, 6).map(([taskId, bids]) => `
             <div class="bid-item">
               <span>${escapeHtml(taskId)}</span>
-              <div>${bids.map((bid, i) => `<i class="${bid.willing === false ? 'no' : ''}" style="--i:${i}"></i>`).join('')}</div>
+              <div>${bids.map((bid, i) => `<i class="${(bid.bid?.willing ?? bid.willing) === false ? 'no' : ''}" style="--i:${i}"></i>`).join('')}</div>
               <strong>${bids.length}</strong>
             </div>`).join('') || '<p class="muted-copy">No bid round yet.</p>'}
         </div>
@@ -546,12 +557,10 @@ async function postAction(path: string): Promise<void> {
   }
 
   try {
-    await fetch(`${API_BASE}${path}`, {
+    await shadowApiRequest(path, {
       method: 'POST',
       headers: path.endsWith('/reject') ? { 'content-type': 'application/json' } : undefined,
       body: path.endsWith('/reject') ? JSON.stringify({ feedback: 'Please review the proposed reassignment together.' }) : undefined
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(await response.text());
     });
     await loadDashboard();
   } catch (error) {
@@ -578,17 +587,19 @@ async function loadDashboard(): Promise<void> {
   if (!root || !badge) return;
 
   try {
-    const response = await fetch(`${API_BASE}/api/shadow/status`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Status ${response.status}`);
-    const data = await response.json() as DashboardStatus;
+    const health = await shadowApiRequest<{ status: string }>('/health', { cache: 'no-store' });
+    if (health.status !== 'ok') throw new Error(`Coordinator health is ${health.status}.`);
+    const data = await shadowApiRequest<DashboardStatus>('/api/shadow/status', { cache: 'no-store' });
+    lastConnectionError = '';
     root.innerHTML = renderDashboardStatus(data);
     const title = document.querySelector<HTMLElement>('#project-title');
     if (title) title.textContent = data.project.title;
     badge.className = 'connection-badge online';
     badge.innerHTML = '<i></i> Coordinator online';
     wireDashboardActions();
-  } catch {
-    root.innerHTML = dashboardOffline();
+  } catch (error) {
+    lastConnectionError = error instanceof Error ? error.message : 'Unknown connection error.';
+    root.innerHTML = dashboardOffline(lastConnectionError);
     badge.className = 'connection-badge';
     badge.innerHTML = '<i></i> Coordinator offline';
     wireDashboardActions();
@@ -600,7 +611,7 @@ function dashboard(): void {
   document.title = 'Cohere Dashboard';
   document.querySelector<HTMLButtonElement>('#refresh-button')?.addEventListener('click', () => void loadDashboard());
   void loadDashboard();
-  dashboardTimer = window.setInterval(() => void loadDashboard(), 5000);
+  dashboardTimer = window.setInterval(() => void loadDashboard(), 2000);
 }
 
 const pathToLegacyPage = (): LegacyPage => {
@@ -714,6 +725,8 @@ function initLiveOrb(): void {
   const root = document.getElementById('live-orb-root');
   const orb = document.getElementById('live-orb');
   if (!root || !orb) return;
+  const orbRoot = root;
+  const liveOrb = orb;
 
   const labels = root.querySelectorAll<HTMLElement>('.orb-label');
   const centerText = root.querySelector<HTMLElement>('.orb-center-text span');
@@ -732,14 +745,14 @@ function initLiveOrb(): void {
 
   // Mouse parallax + eye tracking
   function onMove(e: MouseEvent): void {
-    const rect = root!.getBoundingClientRect();
+    const rect = orbRoot.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = (e.clientX - cx) / (rect.width / 2);
     const dy = (e.clientY - cy) / (rect.height / 2);
 
     // Whole orb follows cursor gently
-    orb!.style.transform = `translate(${dx * 18}px, ${dy * 12}px)`;
+    liveOrb.style.transform = `translate(${dx * 18}px, ${dy * 12}px)`;
 
     // Labels parallax at different depths
     labels.forEach((label, i) => {
@@ -749,7 +762,7 @@ function initLiveOrb(): void {
 
     // Eyes track cursor — use cursor position relative to orb center
     if (eyes) {
-      const orbRect = orb!.getBoundingClientRect();
+      const orbRect = liveOrb.getBoundingClientRect();
       const ox = orbRect.left + orbRect.width / 2;
       const oy = orbRect.top + orbRect.height / 2;
       const ex = Math.max(-48, Math.min(48, (e.clientX - ox) * 0.58));
@@ -759,7 +772,7 @@ function initLiveOrb(): void {
   }
 
   function onLeave(): void {
-    orb!.style.transform = '';
+    liveOrb.style.transform = '';
     labels.forEach((label) => { (label as HTMLElement).style.transform = ''; });
     if (eyes) eyes.style.transform = 'translate(-50%, -50%)';
   }
@@ -818,12 +831,16 @@ function _mkDither(el: HTMLElement, cfg: _DC): (()=>void)|null {
   if (!gl) { cv.remove(); return null; }
 
   const mkSh = (t: number, src: string) => {
-    const s = gl.createShader(t)!;
+    const s = gl.createShader(t);
+    if (!s) return null;
     gl.shaderSource(s, src); gl.compileShader(s); return s;
   };
-  const prog = gl.createProgram()!;
-  gl.attachShader(prog, mkSh(gl.VERTEX_SHADER, _DVERT));
-  gl.attachShader(prog, mkSh(gl.FRAGMENT_SHADER, _DFRAG));
+  const prog = gl.createProgram();
+  const vertexShader = mkSh(gl.VERTEX_SHADER, _DVERT);
+  const fragmentShader = mkSh(gl.FRAGMENT_SHADER, _DFRAG);
+  if (!prog || !vertexShader || !fragmentShader) { cv.remove(); return null; }
+  gl.attachShader(prog, vertexShader);
+  gl.attachShader(prog, fragmentShader);
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { cv.remove(); return null; }
   gl.useProgram(prog);
@@ -914,7 +931,8 @@ function initBentoDither(): void {
   const fns: Array<(()=>void)|null> = [];
   cards.forEach((c, i) => {
     if (i % 2 === 0) {
-      fns.push(_mkDither(c, _BCFGS[Math.floor(i / 2) % _BCFGS.length]!));
+      const cardConfig = _BCFGS[Math.floor(i / 2) % _BCFGS.length];
+      if (cardConfig) fns.push(_mkDither(c, cardConfig));
     }
   });
   _bdCleanup = () => fns.forEach(f => f?.());

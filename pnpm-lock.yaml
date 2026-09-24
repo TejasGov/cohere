@@ -38,6 +38,9 @@ importers:
 
   apps/demo-portal:
     devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
       vite:
         specifier: ^7.1.4
         version: 7.3.6(@types/node@26.5.1)(tsx@4.23.13)(yaml@2.9.0)
@@ -109,6 +112,22 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.23.13
+
+  apps/shadow-cohort-server:
+    dependencies:
+      '@shadow-cohort/agent':
+        specifier: workspace:*
+        version: link:../shadow-cohort-agent
+      '@shadow-cohort/coordinator':
+        specifier: workspace:*
+        version: link:../shadow-cohort-coordinator
+      '@shadow-cohort/peer':
+        specifier: workspace:*
+        version: link:../shadow-cohort-peer
     devDependencies:
       tsx:
         specifier: ^4.20.5

@@ -59,4 +59,10 @@ export class A2APeerClient {
     if (!validateCapacityChangeNotice(value) || value.studentId !== this.peer.studentId) throw new Error('Peer returned an invalid capacity-change notice.');
     return value;
   }
+
+  async resetDemo(): Promise<PeerCapacitySummary> {
+    const value = await this.invoke({ operation: 'reset_demo' });
+    if (!validatePeerCapacitySummary(value) || value.studentId !== this.peer.studentId) throw new Error('Peer returned an invalid reset confirmation.');
+    return value;
+  }
 }
